@@ -2,7 +2,7 @@ export const GAME_CONSTANTS = {
   gravity: 2000,
   maxFallSpeed: 950,
   moveSpeed: 300,
-  jumpStrength: 700,
+  jumpStrength: 800,
   groundAcceleration: 2800,
   groundDeceleration: 3300,
   airControl: 0.62,

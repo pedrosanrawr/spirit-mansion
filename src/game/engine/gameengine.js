@@ -226,29 +226,29 @@ class GameEngine {
     const previousX = this.boss.x;
     const previousY = this.boss.y;
     let horizontalVelocity = this.boss.direction * this.boss.speed;
+    this.boss.attackAnimationTimer = Math.max(0, (this.boss.attackAnimationTimer || 0) - deltaSeconds);
 
     if (this.boss.type === "forestRonin") {
       const playerCenterX = this.player.x + this.player.width / 2;
       const bossCenterX = this.boss.x + this.boss.width / 2;
-      const distance = playerCenterX - bossCenterX;
-
-      if (Math.abs(distance) < this.boss.chaseRange) {
-        this.boss.direction = Math.sign(distance) || this.boss.direction;
-        horizontalVelocity = this.boss.direction * this.boss.speed * 1.15;
-      }
+      const attackFacing = Math.sign(playerCenterX - bossCenterX) || this.boss.facing || this.boss.direction;
+      const attackDistance = Math.abs(playerCenterX - bossCenterX);
+      this.boss.facing = this.boss.attackAnimationTimer > 0 ? this.boss.facing : this.boss.direction;
 
       this.boss.attackTimer -= deltaSeconds;
-      if (this.boss.attackTimer <= 0) {
+      if (this.boss.attackTimer <= 0 && attackDistance <= (this.boss.attackRange || 190)) {
         this.boss.attackTimer = this.boss.attackCooldown || 1.5;
-        const slashWidth = this.boss.width + 52;
-        const slashX = this.boss.direction >= 0
-          ? this.boss.x + this.boss.width - 8
-          : this.boss.x - slashWidth + 8;
+        this.boss.attackAnimationTimer = this.boss.attackAnimationDuration || 0.45;
+        this.boss.facing = attackFacing;
+        const slashWidth = Math.max(90, this.boss.width * 0.58);
+        const slashX = this.boss.facing >= 0
+          ? this.boss.x + this.boss.width - 18
+          : this.boss.x - slashWidth + 18;
         const slashBox = {
           x: slashX,
-          y: this.boss.y - 6,
+          y: this.boss.y + 20,
           width: slashWidth,
-          height: this.boss.height + 12
+          height: Math.max(100, this.boss.height * 0.58)
         };
         if (overlaps(this.player, slashBox)) {
           this.damagePlayer(1, "The ronin's blade cuts through the mist.");
@@ -260,6 +260,9 @@ class GameEngine {
       const playerCenterX = this.player.x + this.player.width / 2;
       const bossCenterX = this.boss.x + this.boss.width / 2;
       const distance = playerCenterX - bossCenterX;
+      this.boss.facing = this.boss.attackAnimationTimer > 0
+        ? this.boss.facing
+        : this.boss.direction;
       if (Math.abs(distance) < this.boss.chaseRange) {
         this.boss.direction = Math.sign(distance) || this.boss.direction;
         horizontalVelocity = this.boss.direction * this.boss.speed;
@@ -268,6 +271,8 @@ class GameEngine {
       this.boss.attackTimer -= deltaSeconds;
       if (this.boss.attackTimer <= 0) {
         this.boss.attackTimer = this.boss.shotCooldown || 1.8;
+        this.boss.attackAnimationTimer = this.boss.attackAnimationDuration || 0.45;
+        this.boss.facing = Math.sign(distance) || this.boss.facing || this.boss.direction;
         this.spawnBossSpread();
       }
     }
@@ -281,10 +286,22 @@ class GameEngine {
     if (this.boss.x <= this.boss.patrolMinX) {
       this.boss.x = this.boss.patrolMinX;
       this.boss.direction = 1;
+      if (this.boss.type === "forestRonin" && this.boss.attackAnimationTimer <= 0) {
+        this.boss.facing = 1;
+      }
+      if (this.boss.type === "bathhouseMatron" && this.boss.attackAnimationTimer <= 0) {
+        this.boss.facing = 1;
+      }
     }
     if (this.boss.x + this.boss.width >= this.boss.patrolMaxX) {
       this.boss.x = this.boss.patrolMaxX - this.boss.width;
       this.boss.direction = -1;
+      if (this.boss.type === "forestRonin" && this.boss.attackAnimationTimer <= 0) {
+        this.boss.facing = -1;
+      }
+      if (this.boss.type === "bathhouseMatron" && this.boss.attackAnimationTimer <= 0) {
+        this.boss.facing = -1;
+      }
     }
   }
 
