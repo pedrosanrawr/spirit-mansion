@@ -42,7 +42,7 @@ const STORY_DIALOGUES = {
       {
         speaker: "Haku",
         title: "Village - Guidance",
-        text: "I am Haku. You crossed into the spirit world, and now the village is testing whether you will lose yourself here. Roamers wander these streets, and a stronger spirit waits near the exit gate."
+        text: "I am Haku. You crossed into the spirit world, and now the village is testing whether you will lose yourself here. Roamers wander these streets, and a stronger spirit guards the path ahead."
       },
       {
         speaker: "Haku",
@@ -154,7 +154,7 @@ const STORY_DIALOGUES = {
       {
         speaker: "Kamaji",
         title: "Mansion - Guidance",
-        text: "Find Spirit Bloom, Moon Blade, and Orb Sigil. The master spirit at the end fires in spreads and summons help when cornered. Bring it down, and the last exit should open."
+        text: "Find Spirit Bloom, Moon Blade, and Orb Sigil. The master spirit at the end fires in spreads when cornered. Bring it down, and the path out should finally reveal itself."
       },
       {
         speaker: "Chihiro",

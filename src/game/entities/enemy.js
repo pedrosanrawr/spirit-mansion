@@ -13,6 +13,9 @@ class Enemy {
     this.chaseRange = config.chaseRange || 220;
     this.shootCooldown = config.shootCooldown || 2.0;
     this.shootTimer = config.shootCooldown || 2.0;
+    this.velocityX = 0;
+    this.velocityY = 0;
+    this.onGround = false;
   }
 }
 
@@ -34,6 +37,10 @@ class Boss {
     this.shotCooldown = config.shotCooldown || 1.8;
     this.summonCooldown = config.summonCooldown || 6.0;
     this.summonTimer = this.summonCooldown;
+    this.chaseRange = config.chaseRange || 260;
+    this.velocityX = 0;
+    this.velocityY = 0;
+    this.onGround = false;
   }
 }
 
