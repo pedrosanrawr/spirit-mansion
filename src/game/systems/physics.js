@@ -10,37 +10,41 @@ export function overlaps(a, b) {
 }
 
 export function resolvePlatformCollision(player, platforms, previousX, previousY) {
-  player.onGround = false;
-  platforms.forEach((platform) => {
-    if (!overlaps(player, platform)) return;
+  resolveEntityPlatformCollision(player, platforms, previousX, previousY);
+}
 
-    const previousBottom = previousY + player.height;
+export function resolveEntityPlatformCollision(entity, platforms, previousX, previousY) {
+  entity.onGround = false;
+  platforms.forEach((platform) => {
+    if (!overlaps(entity, platform)) return;
+
+    const previousBottom = previousY + entity.height;
     const previousTop = previousY;
-    const previousRight = previousX + player.width;
+    const previousRight = previousX + entity.width;
     const previousLeft = previousX;
 
-    if (previousBottom <= platform.y && player.velocityY >= 0) {
-      player.y = platform.y - player.height;
-      player.velocityY = 0;
-      player.onGround = true;
+    if (previousBottom <= platform.y && entity.velocityY >= 0) {
+      entity.y = platform.y - entity.height;
+      entity.velocityY = 0;
+      entity.onGround = true;
       return;
     }
 
-    if (previousTop >= platform.y + platform.height && player.velocityY < 0) {
-      player.y = platform.y + platform.height;
-      player.velocityY = 0;
+    if (previousTop >= platform.y + platform.height && entity.velocityY < 0) {
+      entity.y = platform.y + platform.height;
+      entity.velocityY = 0;
       return;
     }
 
-    if (previousRight <= platform.x && player.velocityX > 0) {
-      player.x = platform.x - player.width;
-      player.velocityX = 0;
+    if (previousRight <= platform.x && entity.velocityX > 0) {
+      entity.x = platform.x - entity.width;
+      entity.velocityX = 0;
       return;
     }
 
-    if (previousLeft >= platform.x + platform.width && player.velocityX < 0) {
-      player.x = platform.x + platform.width;
-      player.velocityX = 0;
+    if (previousLeft >= platform.x + platform.width && entity.velocityX < 0) {
+      entity.x = platform.x + platform.width;
+      entity.velocityX = 0;
     }
   });
 }

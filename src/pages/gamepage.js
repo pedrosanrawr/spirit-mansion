@@ -41,6 +41,10 @@ class GamePage {
   }
 
   keyPressed(key) {
+    if (this.engine.hasOverlay && this.engine.hasOverlay()) {
+      return;
+    }
+
     if (this.pauseMenu) {
       if (key === "Escape") {
         this.pauseMenu = false;
@@ -56,6 +60,18 @@ class GamePage {
     }
 
     this.engine.keyPressed(key);
+  }
+
+  mousePressed() {
+    if (this.engine.handleOverlayClick && this.engine.handleOverlayClick(this.p.mouseX, this.p.mouseY)) {
+      return;
+    }
+  }
+
+  mouseMoved() {
+    if (this.engine.updateOverlayHover) {
+      this.engine.updateOverlayHover(this.p.mouseX, this.p.mouseY);
+    }
   }
 }
 

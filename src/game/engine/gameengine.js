@@ -8,13 +8,18 @@ import { createPlatforms } from "../entities/platform.js";
 import InputSystem from "../systems/input.js";
 import Renderer from "../systems/renderer.js";
 import AssetLoader from "../systems/assetloader.js";
-import { clamp, overlaps, resolvePlatformCollision } from "../systems/physics.js";
+import { clamp, overlaps, resolveEntityPlatformCollision, resolvePlatformCollision } from "../systems/physics.js";
 
 const LEVEL_MAP = { 1: level1, 2: level2, 3: level3 };
 const PICKUP_LABELS = {
   spiritBloom: "Spirit Bloom",
   moonBlade: "Moon Blade",
   orbSigil: "Orb Sigil"
+};
+const STAR_TIME_TARGETS = {
+  1: 115,
+  2: 145,
+  3: 165
 };
 
 class GameEngine {
@@ -40,6 +45,12 @@ class GameEngine {
     this.levelComplete = false;
     this.message = "";
     this.messageTimer = 0;
+    this.levelState = "playing";
+    this.clearSequenceTimer = 0;
+    this.clearSequenceDuration = 1.35;
+    this.overlay = null;
+    this.levelElapsedTime = 0;
+    this.damageTaken = 0;
 
     this.input = new InputSystem(p, C);
     this.renderer = new Renderer(p);
@@ -56,6 +67,11 @@ class GameEngine {
     this.accumulator = 0;
     this.levelComplete = false;
     this.exitUnlocked = false;
+    this.levelState = "playing";
+    this.clearSequenceTimer = 0;
+    this.overlay = null;
+    this.levelElapsedTime = 0;
+    this.damageTaken = 0;
 
     this.platforms = createPlatforms(this.level.platforms || []);
     this.hazards = this.level.hazards || [];
@@ -68,7 +84,7 @@ class GameEngine {
     this.projectiles = [];
     this.enemyProjectiles = [];
     this.input.reset();
-    this.message = "Find the boss, defeat it, then reach the exit door.";
+    this.message = "Find the boss and survive the spirit trial.";
     this.messageTimer = 3.5;
 
     this.assetLoader.preloadLevelAssets(this.levelId).catch(() => {});
@@ -79,12 +95,25 @@ class GameEngine {
   }
 
   update(deltaSeconds = 1 / 60) {
-    if (!this.player || this.levelComplete) return;
+    if (!this.player) return;
+    if (this.levelState === "victoryModal" || this.levelState === "gameOverModal") return;
 
     this.messageTimer = Math.max(0, this.messageTimer - deltaSeconds);
-    this.player.updateCooldowns(deltaSeconds);
-
     this.accumulator += Math.min(deltaSeconds, 0.05);
+
+    if (this.levelState === "clearSequence") {
+      while (this.accumulator >= this.fixedStep) {
+        this.stepClearSequence(this.fixedStep);
+        this.accumulator -= this.fixedStep;
+      }
+      return;
+    }
+
+    if (this.levelComplete) return;
+
+    this.player.updateCooldowns(deltaSeconds);
+    this.levelElapsedTime += deltaSeconds;
+
     while (this.accumulator >= this.fixedStep) {
       this.step(this.fixedStep);
       this.accumulator -= this.fixedStep;
@@ -105,6 +134,26 @@ class GameEngine {
     this.updateCamera();
   }
 
+  stepClearSequence(deltaSeconds) {
+    this.player.facing = 1;
+    this.player.velocityX = C.moveSpeed * 0.42;
+    this.player.velocityY = Math.min(this.player.velocityY + C.gravity * deltaSeconds, C.maxFallSpeed);
+
+    const previousX = this.player.x;
+    const previousY = this.player.y;
+    this.player.x += this.player.velocityX * deltaSeconds;
+    this.player.y += this.player.velocityY * deltaSeconds;
+    resolvePlatformCollision(this.player, this.platforms, previousX, previousY);
+    this.player.x = clamp(this.player.x, 0, this.worldWidth - this.player.width);
+
+    this.clearSequenceTimer = Math.max(0, this.clearSequenceTimer - deltaSeconds);
+    this.updateCamera();
+
+    if (this.clearSequenceTimer <= 0) {
+      this.finishLevel();
+    }
+  }
+
   updatePlayer(deltaSeconds) {
     this.input.applyHorizontalMovement(this.player, deltaSeconds);
     this.input.applyJumpLogic(this.player, deltaSeconds);
@@ -119,10 +168,13 @@ class GameEngine {
   }
 
   updateEnemies(deltaSeconds) {
-    this.enemies = this.enemies.filter((enemy) => enemy.hp > 0);
+    this.enemies = this.enemies.filter((enemy) => enemy.hp > 0 && enemy.y < this.p.height + 180);
     this.enemies.forEach((enemy) => {
+      const previousX = enemy.x;
+      const previousY = enemy.y;
+
       if (enemy.type === "roamer") {
-        enemy.x += enemy.direction * enemy.speed * deltaSeconds;
+        enemy.velocityX = enemy.direction * enemy.speed;
         if (enemy.x <= enemy.patrolMinX) enemy.direction = 1;
         if (enemy.x + enemy.width >= enemy.patrolMaxX) enemy.direction = -1;
       }
@@ -130,7 +182,10 @@ class GameEngine {
       if (enemy.type === "chaser") {
         const distance = this.player.x - enemy.x;
         if (Math.abs(distance) < enemy.chaseRange) {
-          enemy.x += Math.sign(distance) * enemy.speed * deltaSeconds;
+          enemy.direction = Math.sign(distance) || enemy.direction;
+          enemy.velocityX = enemy.direction * enemy.speed;
+        } else {
+          enemy.velocityX = 0;
         }
       }
 
@@ -145,6 +200,22 @@ class GameEngine {
           enemy.shootTimer = enemy.shootCooldown || 2.0;
           this.spawnEnemyOrb(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, this.player.x + this.player.width / 2, this.player.y + this.player.height / 2, 260);
         }
+
+        return;
+      }
+
+      enemy.velocityY = Math.min(enemy.velocityY + C.gravity * deltaSeconds, C.maxFallSpeed);
+      enemy.x += enemy.velocityX * deltaSeconds;
+      enemy.y += enemy.velocityY * deltaSeconds;
+      resolveEntityPlatformCollision(enemy, this.platforms, previousX, previousY);
+
+      if (enemy.type === "roamer" && enemy.x <= enemy.patrolMinX) {
+        enemy.x = enemy.patrolMinX;
+        enemy.direction = 1;
+      }
+      if (enemy.type === "roamer" && enemy.x + enemy.width >= enemy.patrolMaxX) {
+        enemy.x = enemy.patrolMaxX - enemy.width;
+        enemy.direction = -1;
       }
     });
   }
@@ -152,18 +223,31 @@ class GameEngine {
   updateBoss(deltaSeconds) {
     if (!this.boss || this.boss.hp <= 0) return;
 
-    this.boss.x += this.boss.direction * this.boss.speed * deltaSeconds;
-    if (this.boss.x <= this.boss.patrolMinX) this.boss.direction = 1;
-    if (this.boss.x + this.boss.width >= this.boss.patrolMaxX) this.boss.direction = -1;
+    const previousX = this.boss.x;
+    const previousY = this.boss.y;
+    let horizontalVelocity = this.boss.direction * this.boss.speed;
 
     if (this.boss.type === "forestRonin") {
+      const playerCenterX = this.player.x + this.player.width / 2;
+      const bossCenterX = this.boss.x + this.boss.width / 2;
+      const distance = playerCenterX - bossCenterX;
+
+      if (Math.abs(distance) < this.boss.chaseRange) {
+        this.boss.direction = Math.sign(distance) || this.boss.direction;
+        horizontalVelocity = this.boss.direction * this.boss.speed * 1.15;
+      }
+
       this.boss.attackTimer -= deltaSeconds;
       if (this.boss.attackTimer <= 0) {
         this.boss.attackTimer = this.boss.attackCooldown || 1.5;
+        const slashWidth = this.boss.width + 52;
+        const slashX = this.boss.direction >= 0
+          ? this.boss.x + this.boss.width - 8
+          : this.boss.x - slashWidth + 8;
         const slashBox = {
-          x: this.boss.x - 18,
+          x: slashX,
           y: this.boss.y - 6,
-          width: this.boss.width + 36,
+          width: slashWidth,
           height: this.boss.height + 12
         };
         if (overlaps(this.player, slashBox)) {
@@ -173,17 +257,34 @@ class GameEngine {
     }
 
     if (this.boss.type === "bathhouseMatron") {
+      const playerCenterX = this.player.x + this.player.width / 2;
+      const bossCenterX = this.boss.x + this.boss.width / 2;
+      const distance = playerCenterX - bossCenterX;
+      if (Math.abs(distance) < this.boss.chaseRange) {
+        this.boss.direction = Math.sign(distance) || this.boss.direction;
+        horizontalVelocity = this.boss.direction * this.boss.speed;
+      }
+
       this.boss.attackTimer -= deltaSeconds;
       if (this.boss.attackTimer <= 0) {
         this.boss.attackTimer = this.boss.shotCooldown || 1.8;
         this.spawnBossSpread();
       }
+    }
 
-      this.boss.summonTimer -= deltaSeconds;
-      if (this.boss.summonTimer <= 0) {
-        this.boss.summonTimer = this.boss.summonCooldown || 6.5;
-        this.spawnSummonedEnemy();
-      }
+    this.boss.velocityX = horizontalVelocity;
+    this.boss.velocityY = Math.min(this.boss.velocityY + C.gravity * deltaSeconds, C.maxFallSpeed);
+    this.boss.x += this.boss.velocityX * deltaSeconds;
+    this.boss.y += this.boss.velocityY * deltaSeconds;
+    resolveEntityPlatformCollision(this.boss, this.platforms, previousX, previousY);
+
+    if (this.boss.x <= this.boss.patrolMinX) {
+      this.boss.x = this.boss.patrolMinX;
+      this.boss.direction = 1;
+    }
+    if (this.boss.x + this.boss.width >= this.boss.patrolMaxX) {
+      this.boss.x = this.boss.patrolMaxX - this.boss.width;
+      this.boss.direction = -1;
     }
   }
 
@@ -206,35 +307,6 @@ class GameEngine {
         life: 3
       });
     });
-  }
-
-  spawnSummonedEnemy() {
-    const summonX = clamp(this.boss.x - 120, 80, this.worldWidth - 160);
-    const type = Math.random() < 0.5 ? "roamer" : "chaser";
-    if (type === "roamer") {
-      this.enemies.push(createEnemiesFromLevel([{
-        type: "roamer",
-        x: summonX,
-        y: 640,
-        width: 32,
-        height: 32,
-        patrolMinX: summonX - 80,
-        patrolMaxX: summonX + 140,
-        speed: 105,
-        hp: 1
-      }])[0]);
-    } else {
-      this.enemies.push(createEnemiesFromLevel([{
-        type: "chaser",
-        x: summonX,
-        y: 640,
-        width: 32,
-        height: 32,
-        chaseRange: 250,
-        speed: 120,
-        hp: 2
-      }])[0]);
-    }
   }
 
   spawnEnemyOrb(x, y, targetX, targetY, speed) {
@@ -378,6 +450,7 @@ class GameEngine {
   }
 
   damagePlayer(amount, reason, options = {}) {
+    if (this.levelState !== "playing") return;
     if (this.player.invulnerableTimer > 0) return;
 
     if (this.player.isGrown && !options.ignoreBloomShield) {
@@ -389,6 +462,7 @@ class GameEngine {
     }
 
     this.player.hearts -= amount;
+    this.damageTaken += amount;
     this.player.invulnerableTimer = C.invulnerabilityTime;
     this.message = reason;
     this.messageTimer = 1.8;
@@ -398,35 +472,150 @@ class GameEngine {
       return;
     }
 
-    this.player.resetPowerStateAfterDeath();
-    this.message = "You were overwhelmed. Restarting this area.";
-    this.messageTimer = 2.6;
-    this.start(this.levelId);
+    this.player.hearts = 0;
+    this.player.velocityX = 0;
+    this.player.velocityY = 0;
+    this.projectiles = [];
+    this.enemyProjectiles = [];
+    this.levelState = "gameOverModal";
+    this.overlay = this.createGameOverOverlay();
+    this.message = "";
+    this.messageTimer = 0;
   }
 
   tryOpenExit() {
+    if (this.levelState !== "playing") return;
     if (this.exitUnlocked) return;
     if (!this.boss || this.boss.hp <= 0) {
-      this.exitUnlocked = true;
-      this.message = "The exit gate opens.";
-      this.messageTimer = 2.2;
+      this.beginLevelClearSequence();
     }
   }
 
   tryCompleteLevel() {
-    if (!this.exitUnlocked || !this.exit || this.levelComplete) return;
-    if (overlaps(this.player, this.exit)) {
-      this.levelComplete = true;
-      if (this.router.unlockLevel) {
-        this.router.unlockLevel(this.levelId + 1);
-      }
-      this.router.navigateTo("lore", { level: this.levelId, phase: "end" });
-    }
+    return;
   }
 
   updateCamera() {
     const targetX = this.player.x - this.p.width * 0.35;
     this.cameraX = clamp(targetX, 0, Math.max(0, this.worldWidth - this.p.width));
+  }
+
+  beginLevelClearSequence() {
+    this.exitUnlocked = true;
+    this.levelState = "clearSequence";
+    this.clearSequenceTimer = this.clearSequenceDuration;
+    this.projectiles = [];
+    this.enemyProjectiles = [];
+    this.enemies = [];
+    this.message = "The spirit barrier is fading...";
+    this.messageTimer = 1.6;
+  }
+
+  finishLevel() {
+    this.levelComplete = true;
+    this.levelState = "victoryModal";
+    this.player.velocityX = 0;
+    this.player.velocityY = 0;
+    if (this.router.unlockLevel) {
+      this.router.unlockLevel(this.levelId + 1);
+    }
+    this.overlay = this.createVictoryOverlay();
+  }
+
+  createVictoryOverlay() {
+    const stats = this.buildVictoryStats();
+    const centerX = this.p.width / 2;
+    const buttonY = this.p.height / 2 + 138;
+
+    return {
+      type: "victory",
+      title: "A PATH THROUGH THE SPIRIT WORLD",
+      subtitle: "You endured the trial and the veil begins to part.",
+      stats,
+      buttons: [
+        this.createOverlayButton("MAIN MENU", centerX - 238, buttonY, 210, 58, () => {
+          this.router.navigateTo("menu");
+        }),
+        this.createOverlayButton("NEXT", centerX + 28, buttonY, 210, 58, () => {
+          this.router.navigateTo("lore", { level: this.levelId, phase: "end" });
+        })
+      ]
+    };
+  }
+
+  createGameOverOverlay() {
+    const centerX = this.p.width / 2;
+    const buttonY = this.p.height / 2 + 120;
+
+    return {
+      type: "gameOver",
+      title: "GAME OVER",
+      subtitle: "The spirits closed in, but your path is not lost.",
+      stats: null,
+      buttons: [
+        this.createOverlayButton("PLAY AGAIN", centerX - 238, buttonY, 210, 58, () => {
+          this.start(this.levelId);
+        }),
+        this.createOverlayButton("MAIN MENU", centerX + 28, buttonY, 210, 58, () => {
+          this.router.navigateTo("menu");
+        })
+      ]
+    };
+  }
+
+  buildVictoryStats() {
+    const heartGoalMet = this.player.hearts >= 2;
+    const timeGoalMet = this.levelElapsedTime <= (STAR_TIME_TARGETS[this.levelId] || 150);
+    const damageGoalMet = this.damageTaken <= 2;
+    const stars = Math.max(1, [heartGoalMet, timeGoalMet, damageGoalMet].filter(Boolean).length);
+
+    return {
+      stars,
+      hearts: this.player.hearts,
+      timeSeconds: this.levelElapsedTime,
+      damageTaken: this.damageTaken,
+      heartGoalMet,
+      timeGoalMet,
+      damageGoalMet
+    };
+  }
+
+  createOverlayButton(text, x, y, width, height, action) {
+    return {
+      text,
+      x,
+      y,
+      width,
+      height,
+      hovered: false,
+      action
+    };
+  }
+
+  hasOverlay() {
+    return this.levelState === "victoryModal" || this.levelState === "gameOverModal";
+  }
+
+  updateOverlayHover(mouseX, mouseY) {
+    if (!this.overlay) return;
+    this.overlay.buttons.forEach((button) => {
+      button.hovered = this.isPointInsideButton(mouseX, mouseY, button);
+    });
+  }
+
+  handleOverlayClick(mouseX, mouseY) {
+    if (!this.overlay) return false;
+    const button = this.overlay.buttons.find((candidate) => this.isPointInsideButton(mouseX, mouseY, candidate));
+    if (!button) return false;
+    button.action();
+    return true;
+  }
+
+  isPointInsideButton(x, y, button) {
+    return x >= button.x &&
+      x <= button.x + button.width &&
+      y >= button.y &&
+      y <= button.y + button.height;
   }
 
   draw() {

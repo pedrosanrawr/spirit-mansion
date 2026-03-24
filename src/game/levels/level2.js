@@ -1,56 +1,64 @@
 const level2 = {
   id: 2,
   name: "Forest",
-  worldWidth: 3000,
+  worldWidth: 3860,
   spawn: { x: 90, y: 560 },
   platforms: [
-    { x: 0, y: 680, width: 380, height: 40 },
-    { x: 460, y: 680, width: 360, height: 40 },
-    { x: 900, y: 680, width: 370, height: 40 },
-    { x: 1340, y: 680, width: 380, height: 40 },
-    { x: 1810, y: 680, width: 400, height: 40 },
-    { x: 2280, y: 680, width: 360, height: 40 },
-    { x: 2690, y: 680, width: 310, height: 40 },
-    { x: 220, y: 560, width: 150, height: 24 },
-    { x: 500, y: 520, width: 180, height: 24 },
-    { x: 820, y: 470, width: 170, height: 24 },
-    { x: 1210, y: 540, width: 170, height: 24 },
-    { x: 1560, y: 500, width: 180, height: 24 },
-    { x: 1970, y: 455, width: 170, height: 24 },
-    { x: 2370, y: 520, width: 160, height: 24 }
+    { x: 0, y: 640, width: 420, height: 80 },
+    { x: 500, y: 640, width: 390, height: 80 },
+    { x: 970, y: 640, width: 410, height: 80 },
+    { x: 1460, y: 640, width: 430, height: 80 },
+    { x: 1970, y: 640, width: 400, height: 80 },
+    { x: 2450, y: 640, width: 390, height: 80 },
+    { x: 2920, y: 640, width: 360, height: 80 },
+    { x: 3360, y: 640, width: 500, height: 80 },
+    { x: 220, y: 565, width: 170, height: 24 },
+    { x: 540, y: 520, width: 170, height: 24 },
+    { x: 860, y: 470, width: 170, height: 24 },
+    { x: 1290, y: 545, width: 170, height: 24 },
+    { x: 1620, y: 500, width: 150, height: 24 },
+    { x: 2020, y: 455, width: 170, height: 24 },
+    { x: 2390, y: 510, width: 140, height: 24 },
+    { x: 2790, y: 470, width: 170, height: 24 },
+    { x: 3160, y: 520, width: 170, height: 24 }
   ],
   hazards: [
-    { x: 380, y: 680, width: 80, height: 50 },
-    { x: 820, y: 680, width: 80, height: 50 },
-    { x: 1270, y: 680, width: 70, height: 50 },
-    { x: 1720, y: 680, width: 90, height: 50 },
-    { x: 2210, y: 680, width: 70, height: 50 },
-    { x: 2640, y: 680, width: 50, height: 50 }
+    { x: 420, y: 640, width: 80, height: 80 },
+    { x: 890, y: 640, width: 80, height: 80 },
+    { x: 1380, y: 640, width: 80, height: 80 },
+    { x: 1890, y: 640, width: 80, height: 80 },
+    { x: 2370, y: 640, width: 80, height: 80 },
+    { x: 2840, y: 640, width: 80, height: 80 },
+    { x: 3280, y: 640, width: 80, height: 80 }
   ],
   enemies: [
-    { type: "roamer", x: 390, y: 640, patrolMinX: 360, patrolMaxX: 560, speed: 100, hp: 1 },
-    { type: "chaser", x: 700, y: 640, chaseRange: 260, speed: 120, hp: 2 },
-    { type: "chaser", x: 980, y: 640, chaseRange: 230, speed: 118, hp: 2 },
-    { type: "roamer", x: 1500, y: 640, patrolMinX: 1380, patrolMaxX: 1690, speed: 110, hp: 1 },
-    { type: "chaser", x: 2060, y: 640, chaseRange: 300, speed: 126, hp: 2 }
+    { type: "roamer", x: 360, y: 600, patrolMinX: 220, patrolMaxX: 470, speed: 100, hp: 1 },
+    { type: "chaser", x: 720, y: 600, chaseRange: 280, speed: 122, hp: 2 },
+    { type: "chaser", x: 1130, y: 600, chaseRange: 250, speed: 120, hp: 2 },
+    { type: "roamer", x: 1700, y: 600, patrolMinX: 1510, patrolMaxX: 1870, speed: 110, hp: 1 },
+    { type: "chaser", x: 2120, y: 600, chaseRange: 310, speed: 126, hp: 2 },
+    { type: "roamer", x: 2730, y: 600, patrolMinX: 2490, patrolMaxX: 2820, speed: 112, hp: 1 },
+    { type: "chaser", x: 3150, y: 600, chaseRange: 300, speed: 128, hp: 2 }
   ],
   pickups: [
-    { type: "spiritBloom", x: 820, y: 430, collected: false },
-    { type: "moonBlade", x: 1970, y: 415, collected: false }
+    { type: "spiritBloom", x: 860, y: 430, collected: false },
+    { type: "moonBlade", x: 2020, y: 415, collected: false },
+    { type: "spiritBloom", x: 3170, y: 480, collected: false }
   ],
   boss: {
     type: "forestRonin",
-    x: 2790,
-    y: 640,
+    x: 3560,
+    y: 596,
     width: 74,
     height: 44,
-    patrolMinX: 2700,
-    patrolMaxX: 2930,
-    speed: 110,
+    patrolMinX: 3440,
+    patrolMaxX: 3780,
+    chaseRange: 320,
+    speed: 128,
     hp: 8,
-    attackCooldown: 1.5
+    attackCooldown: 1.15
   },
-  exit: { x: 2940, y: 628, width: 48, height: 52 }
+  exit: { x: 3790, y: 598, width: 48, height: 52 }
 };
 
 export default level2;

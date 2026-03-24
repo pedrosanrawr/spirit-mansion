@@ -2,6 +2,8 @@ import villageBackgroundPath from "../../assets/village/background.png";
 import villageMidbackgroundPath from "../../assets/village/midbackground.png";
 import forestBackgroundPath from "../../assets/forest/background.png";
 import forestMidbackgroundPath from "../../assets/forest/midbackground.png";
+import castleBackgroundPath from "../../assets/castle/background.png";
+import castleMidbackgroundPath from "../../assets/castle/midbackground.png";
 
 class AssetLoader {
   constructor(p) {
@@ -72,6 +74,15 @@ class AssetLoader {
       const background = await this.loadOptionalImage(forestBackgroundPath);
       const midbackground = await this.loadOptionalImage(forestMidbackgroundPath);
       this.assets.levelBackgrounds[2] = {
+        background,
+        midbackground
+      };
+    }
+
+    if (levelId === 3 && !this.assets.levelBackgrounds[3]) {
+      const background = await this.loadOptionalImage(castleBackgroundPath);
+      const midbackground = await this.loadOptionalImage(castleMidbackgroundPath);
+      this.assets.levelBackgrounds[3] = {
         background,
         midbackground
       };
