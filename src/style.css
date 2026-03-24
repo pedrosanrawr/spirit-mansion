@@ -1,0 +1,18 @@
+@font-face {
+  font-family: "Qaroxe";
+  src: url("./assets/Qaroxe.ttf") format("truetype");
+  font-display: swap;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: black;
+  font-family: "Qaroxe", sans-serif;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  height: 100vh;
+}

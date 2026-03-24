@@ -1,0 +1,21 @@
+export const GAME_CONSTANTS = {
+  gravity: 2000,
+  maxFallSpeed: 950,
+  moveSpeed: 300,
+  jumpStrength: 700,
+  groundAcceleration: 2800,
+  groundDeceleration: 3300,
+  airControl: 0.62,
+  coyoteTime: 0.1,
+  jumpBufferTime: 0.12,
+  fixedStep: 1 / 120,
+  playerWidth: 30,
+  playerHeight: 40,
+  invulnerabilityTime: 1.0,
+  swordRange: 48,
+  swordHeight: 32,
+  swordCooldown: 0.28,
+  orbSpeed: 520,
+  orbCooldown: 0.3,
+  enemyContactDamage: 1
+};
