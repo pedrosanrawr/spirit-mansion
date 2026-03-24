@@ -62,7 +62,18 @@ class Renderer {
   drawLevelGeometry(engine) {
     this.p.noStroke();
     this.p.fill(58, 72, 98);
+    const platformAssets = engine.assets.levelBackgrounds?.[engine.levelId] || {};
+    const floatingGround = platformAssets.floatingGround;
+    const ground = platformAssets.ground;
     engine.platforms.forEach((platform) => {
+      if (ground && platform.height >= 80) {
+        this.p.image(ground, platform.x - engine.cameraX, platform.y, platform.width, platform.height);
+        return;
+      }
+      if (floatingGround && platform.height < 80) {
+        this.p.image(floatingGround, platform.x - engine.cameraX, platform.y, platform.width, platform.height);
+        return;
+      }
       this.p.rect(platform.x - engine.cameraX, platform.y, platform.width, platform.height);
     });
 
