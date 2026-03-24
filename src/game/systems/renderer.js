@@ -96,6 +96,16 @@ class Renderer {
 
   drawEnemies(engine) {
     engine.enemies.forEach((enemy) => {
+      if (enemy.type === "roamer" && this.drawSusuwatari(enemy, engine)) {
+        return;
+      }
+      if (enemy.type === "chaser" && this.drawSpirit(enemy, engine)) {
+        return;
+      }
+      if (enemy.type === "flyer" && this.drawPaperbird(enemy, engine)) {
+        return;
+      }
+
       if (enemy.type === "roamer") this.p.fill(220, 110, 100);
       if (enemy.type === "chaser") this.p.fill(240, 160, 100);
       if (enemy.type === "flyer") this.p.fill(175, 120, 235);
@@ -103,16 +113,231 @@ class Renderer {
     });
   }
 
+  drawSusuwatari(enemy, engine) {
+    const susuwatari = engine.assets.enemySprites?.susuwatari;
+    if (!susuwatari) return false;
+
+    const isWalking = Math.abs(enemy.velocityX) > 4;
+    const frames = isWalking && susuwatari.walk.length > 0
+      ? susuwatari.walk
+      : susuwatari.idle;
+
+    if (!frames || frames.length === 0) return false;
+
+    const frameSpeed = isWalking ? 10 : 5;
+    const frameIndex = Math.floor((this.p.millis() / 1000) * frameSpeed) % frames.length;
+    const sprite = frames[frameIndex];
+    this.drawGlowingEnemyImage(
+      sprite,
+      enemy.x - engine.cameraX,
+      enemy.y,
+      enemy.width,
+      enemy.height,
+      enemy.direction < 0
+    );
+    return true;
+  }
+
+  drawSpirit(enemy, engine) {
+    const spirit = engine.assets.enemySprites?.spirit;
+    if (!spirit) return false;
+
+    const isWalking = Math.abs(enemy.velocityX) > 4;
+    const frames = isWalking && spirit.walk.length > 0
+      ? spirit.walk
+      : spirit.idle;
+
+    if (!frames || frames.length === 0) return false;
+
+    const frameSpeed = isWalking ? 8 : 4;
+    const frameIndex = Math.floor((this.p.millis() / 1000) * frameSpeed) % frames.length;
+    const sprite = frames[frameIndex];
+    this.drawGlowingEnemyImage(
+      sprite,
+      enemy.x - engine.cameraX,
+      enemy.y,
+      enemy.width,
+      enemy.height,
+      enemy.direction < 0
+    );
+    return true;
+  }
+
+  drawPaperbird(enemy, engine) {
+    const paperbird = engine.assets.enemySprites?.paperbird;
+    const frames = paperbird?.fly || [];
+    if (frames.length === 0) return false;
+
+    const frameSpeed = 12;
+    const frameIndex = Math.floor((this.p.millis() / 1000) * frameSpeed) % frames.length;
+    const sprite = frames[frameIndex];
+    this.drawGlowingEnemyImage(
+      sprite,
+      enemy.x - engine.cameraX,
+      enemy.y,
+      enemy.width,
+      enemy.height,
+      enemy.direction > 0
+    );
+    return true;
+  }
+
+  drawGlowingEnemyImage(image, x, y, w, h, flipX) {
+    this.p.push();
+    this.p.drawingContext.shadowBlur = 18;
+    this.p.drawingContext.shadowColor = "rgba(210, 245, 255, 0.9)";
+    this.p.tint(255, 245);
+    this.drawFlippedImage(image, x, y, w, h, flipX);
+    this.p.pop();
+  }
+
   drawBoss(engine) {
     if (!engine.boss || engine.boss.hp <= 0) return;
-    this.p.fill(255, 80, 140);
-    this.p.rect(engine.boss.x - engine.cameraX, engine.boss.y, engine.boss.width, engine.boss.height);
+
+    if (!this.drawVillageWardenBoss(engine.boss, engine) &&
+      !this.drawForestRoninBoss(engine.boss, engine) &&
+      !this.drawBathhouseMatronBoss(engine.boss, engine)) {
+      this.p.fill(255, 80, 140);
+      this.p.rect(engine.boss.x - engine.cameraX, engine.boss.y, engine.boss.width, engine.boss.height);
+    }
 
     const hpRatio = Math.max(0, Math.min(1, engine.boss.hp / engine.boss.maxHp));
     this.p.fill(30);
     this.p.rect(this.p.width - 250, 20, 220, 18);
     this.p.fill(230, 70, 90);
     this.p.rect(this.p.width - 250, 20, 220 * hpRatio, 18);
+  }
+
+  drawVillageWardenBoss(boss, engine) {
+    if (boss.type !== "villageWarden") return false;
+
+    const boh = engine.assets.bossSprites?.boh;
+    if (!boh) return false;
+
+    const isWalking = Math.abs(boss.velocityX) > 4;
+    const frames = isWalking && boh.walk.length > 0
+      ? boh.walk
+      : boh.idle;
+
+    if (!frames || frames.length === 0) return false;
+
+    const frameSpeed = isWalking ? 6 : 3;
+    const frameIndex = Math.floor((this.p.millis() / 1000) * frameSpeed) % frames.length;
+    const sprite = frames[frameIndex];
+    const aspectRatio = sprite.width / sprite.height;
+    const drawHeight = boss.height;
+    const drawWidth = drawHeight * aspectRatio;
+    const drawX = boss.x - engine.cameraX - (drawWidth - boss.width) / 2;
+    const drawY = boss.y - (drawHeight - boss.height);
+    this.drawBossImage(
+      sprite,
+      drawX,
+      drawY,
+      drawWidth,
+      drawHeight,
+      boss.direction < 0
+    );
+    return true;
+  }
+
+  drawForestRoninBoss(boss, engine) {
+    if (boss.type !== "forestRonin") return false;
+
+    const yubaba = engine.assets.bossSprites?.yubaba;
+    if (!yubaba) return false;
+
+    let frames = yubaba.idle || [];
+    let frameSpeed = 2;
+    let useReverseWalkFrame = false;
+    const isAttacking = (boss.attackAnimationTimer || 0) > 0;
+
+    if (isAttacking && (yubaba.attack || []).length > 0) {
+      frames = yubaba.attack;
+    } else if (Math.abs(boss.velocityX) > 4 && (yubaba.walk || []).length > 0) {
+      frames = yubaba.walk;
+      frameSpeed = 5;
+      useReverseWalkFrame = true;
+    }
+
+    if (!frames || frames.length === 0) return false;
+
+    const frameIndex = Math.floor((this.p.millis() / 1000) * frameSpeed) % frames.length;
+    const sprite = frames[frameIndex];
+    const aspectRatio = sprite.width / sprite.height;
+    const drawHeight = boss.height;
+    const drawWidth = drawHeight * aspectRatio;
+    const drawX = boss.x - engine.cameraX - (drawWidth - boss.width) / 2;
+    const drawY = boss.y - (drawHeight - boss.height);
+    const playerCenterX = engine.player.x + engine.player.width / 2;
+    const bossCenterX = boss.x + boss.width / 2;
+    let flipX = isAttacking
+      ? playerCenterX > bossCenterX
+      : boss.direction < 0;
+
+    if (useReverseWalkFrame && frameIndex % 2 === 1) {
+      flipX = !flipX;
+    }
+
+    this.drawBossImage(
+      sprite,
+      drawX,
+      drawY,
+      drawWidth,
+      drawHeight,
+      flipX
+    );
+    return true;
+  }
+
+  drawBathhouseMatronBoss(boss, engine) {
+    if (boss.type !== "bathhouseMatron") return false;
+
+    const noface = engine.assets.bossSprites?.noface;
+    if (!noface) return false;
+
+    const isShooting = (boss.attackAnimationTimer || 0) > 0;
+    const isMoving = Math.abs(boss.velocityX) > 4;
+    let frames = noface.idle || [];
+    let frameSpeed = 2;
+
+    if (isShooting && (noface.shoot || []).length > 0) {
+      frames = noface.shoot;
+    } else if (isMoving && (noface.float || []).length > 0) {
+      frames = noface.float;
+      frameSpeed = 5;
+    }
+
+    if (!frames || frames.length === 0) return false;
+
+    const frameIndex = Math.floor((this.p.millis() / 1000) * frameSpeed) % frames.length;
+    const sprite = frames[frameIndex];
+    const aspectRatio = sprite.width / sprite.height;
+    const drawHeight = boss.height;
+    const drawWidth = drawHeight * aspectRatio;
+    const drawX = boss.x - engine.cameraX - (drawWidth - boss.width) / 2;
+    const drawY = boss.y - (drawHeight - boss.height);
+    const flipX = isShooting
+      ? boss.facing < 0
+      : boss.direction < 0;
+
+    this.drawBossImage(
+      sprite,
+      drawX,
+      drawY,
+      drawWidth,
+      drawHeight,
+      flipX
+    );
+    return true;
+  }
+
+  drawBossImage(image, x, y, w, h, flipX) {
+    this.p.push();
+    this.p.drawingContext.shadowBlur = 28;
+    this.p.drawingContext.shadowColor = "rgba(255, 190, 120, 0.9)";
+    this.p.tint(255, 255);
+    this.drawFlippedImage(image, x, y, w, h, flipX);
+    this.p.pop();
   }
 
   drawProjectiles(engine) {
