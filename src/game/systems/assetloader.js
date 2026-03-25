@@ -35,6 +35,19 @@ import nofaceFloat1Path from "../../assets/sprites/noface/float1.png";
 import nofaceFloatsteady2Path from "../../assets/sprites/noface/floatsteady2.png";
 import nofaceFloat3Path from "../../assets/sprites/noface/float3.png";
 import nofaceShootPath from "../../assets/sprites/noface/shoot.png";
+import chihiroIdlePath from "../../assets/sprites/chihiro/idle.png";
+import chihiroWalk1Path from "../../assets/sprites/chihiro/walk1.png";
+import chihiroWalk2Path from "../../assets/sprites/chihiro/walk2.png";
+import chihiroJumpPath from "../../assets/sprites/chihiro/jump.png";
+import chihiroSword1Path from "../../assets/sprites/chihiro/sword1.png";
+import chihiroSword2Path from "../../assets/sprites/chihiro/sword2.png";
+import bloomPropPath from "../../assets/props/bloom.png";
+import clockPropPath from "../../assets/props/clock.png";
+import enemyOrbPropPath from "../../assets/props/enemyorb.png";
+import heartPropPath from "../../assets/props/heart.png";
+import playerOrbPropPath from "../../assets/props/playerorb.png";
+import starPropPath from "../../assets/props/star.png";
+import swordPropPath from "../../assets/props/sword.png";
 
 class AssetLoader {
   constructor(p) {
@@ -46,11 +59,13 @@ class AssetLoader {
       playerAnimations: {
         idle: [],
         run: [],
-        jump: []
+        jump: [],
+        attack: []
       },
       enemySprites: {},
       bossSprites: {},
-      pickupSprites: {}
+      pickupSprites: {},
+      props: {}
     };
   }
 
@@ -72,23 +87,27 @@ class AssetLoader {
   }
 
   async preloadCommonAssets() {
-    // Put your player frames in: public/assets/player/
-    // Naming expected:
-    // idle_1.png, idle_2.png, ...
-    // run_1.png, run_2.png, ...
-    // jump_1.png, jump_2.png, ...
-    const playerBase = "/assets/player";
-    this.assets.playerAnimations.idle = await this.loadFrameSeries(playerBase, "idle", 8);
-    this.assets.playerAnimations.run = await this.loadFrameSeries(playerBase, "run", 12);
-    this.assets.playerAnimations.jump = await this.loadFrameSeries(playerBase, "jump", 6);
+    const chihiroFrames = await Promise.all([
+      this.loadOptionalImage(chihiroIdlePath),
+      this.loadOptionalImage(chihiroWalk1Path),
+      this.loadOptionalImage(chihiroWalk2Path),
+      this.loadOptionalImage(chihiroJumpPath),
+      this.loadOptionalImage(chihiroSword1Path),
+      this.loadOptionalImage(chihiroSword2Path)
+    ]);
 
-    // Fallback single sprite if no animation frames exist.
+    this.assets.playerAnimations.idle = chihiroFrames[0] ? [chihiroFrames[0]] : [];
+    this.assets.playerAnimations.run = chihiroFrames.slice(1, 3).filter(Boolean);
+    this.assets.playerAnimations.jump = chihiroFrames[3] ? [chihiroFrames[3]] : [];
+    this.assets.playerAnimations.attack = chihiroFrames.slice(4).filter(Boolean);
+
     if (
       this.assets.playerAnimations.idle.length === 0 &&
       this.assets.playerAnimations.run.length === 0 &&
-      this.assets.playerAnimations.jump.length === 0
+      this.assets.playerAnimations.jump.length === 0 &&
+      this.assets.playerAnimations.attack.length === 0
     ) {
-      this.assets.playerSprite = await this.loadOptionalImage(`${playerBase}/player.png`);
+      this.assets.playerSprite = null;
     }
 
     const susuwatariFrames = await Promise.all([
@@ -163,6 +182,32 @@ class AssetLoader {
       idle: nofaceFrames[0] ? [nofaceFrames[0]] : [],
       float: nofaceFrames.slice(1, 4).filter(Boolean),
       shoot: nofaceFrames[4] ? [nofaceFrames[4]] : []
+    };
+
+    const propImages = await Promise.all([
+      this.loadOptionalImage(bloomPropPath),
+      this.loadOptionalImage(clockPropPath),
+      this.loadOptionalImage(enemyOrbPropPath),
+      this.loadOptionalImage(heartPropPath),
+      this.loadOptionalImage(playerOrbPropPath),
+      this.loadOptionalImage(starPropPath),
+      this.loadOptionalImage(swordPropPath)
+    ]);
+
+    this.assets.props = {
+      bloom: propImages[0],
+      clock: propImages[1],
+      enemyOrb: propImages[2],
+      heart: propImages[3],
+      playerOrb: propImages[4],
+      star: propImages[5],
+      sword: propImages[6]
+    };
+
+    this.assets.pickupSprites = {
+      spiritBloom: this.assets.props.bloom,
+      moonBlade: this.assets.props.sword,
+      orbSigil: this.assets.props.playerOrb
     };
   }
 

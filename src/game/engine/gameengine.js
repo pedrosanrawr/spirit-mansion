@@ -371,6 +371,7 @@ class GameEngine {
   handleCombat() {
     if (this.input.consumeSwordRequest() && this.player.hasSword && this.player.swordCooldown <= 0) {
       this.player.swordCooldown = C.swordCooldown;
+      this.player.attackAnimationTimer = C.swordCooldown;
       this.performSwordSlash();
     }
 

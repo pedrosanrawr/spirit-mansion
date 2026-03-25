@@ -12,6 +12,12 @@ class Renderer {
       .catch(() => {});
   }
 
+  static BOSS_LABELS = {
+    villageWarden: "BOH",
+    forestRonin: "YUBABA",
+    bathhouseMatron: "NO-FACE"
+  };
+
   draw(engine) {
     this.drawBackground(engine);
     this.drawLevelGeometry(engine);
@@ -84,14 +90,17 @@ class Renderer {
   drawPickups(engine) {
     engine.pickups.forEach((pickup) => {
       if (pickup.collected) return;
+      const sprite = engine.assets.pickupSprites?.[pickup.type];
+      if (sprite) {
+        this.drawFloatingProp(sprite, pickup.x - engine.cameraX, pickup.y, 28, this.p.millis() * 0.0035 + pickup.x * 0.01);
+        return;
+      }
+
       if (pickup.type === "spiritBloom") this.p.fill(120, 255, 145);
       if (pickup.type === "moonBlade") this.p.fill(210, 230, 255);
       if (pickup.type === "orbSigil") this.p.fill(170, 150, 255);
       this.p.circle(pickup.x - engine.cameraX, pickup.y, 16);
     });
-
-    // Pickup asset hook:
-    // this.p.image(engine.assets.pickups[pickup.type], pickup.x - engine.cameraX - 12, pickup.y - 12, 24, 24);
   }
 
   drawEnemies(engine) {
@@ -200,12 +209,6 @@ class Renderer {
       this.p.fill(255, 80, 140);
       this.p.rect(engine.boss.x - engine.cameraX, engine.boss.y, engine.boss.width, engine.boss.height);
     }
-
-    const hpRatio = Math.max(0, Math.min(1, engine.boss.hp / engine.boss.maxHp));
-    this.p.fill(30);
-    this.p.rect(this.p.width - 250, 20, 220, 18);
-    this.p.fill(230, 70, 90);
-    this.p.rect(this.p.width - 250, 20, 220 * hpRatio, 18);
   }
 
   drawVillageWardenBoss(boss, engine) {
@@ -341,13 +344,15 @@ class Renderer {
   }
 
   drawProjectiles(engine) {
-    this.p.fill(180, 220, 255);
     engine.projectiles.forEach((projectile) => {
+      if (this.drawProjectileSprite(engine.assets.props?.playerOrb, projectile, engine.cameraX, 22)) return;
+      this.p.fill(180, 220, 255);
       this.p.circle(projectile.x - engine.cameraX, projectile.y, projectile.width);
     });
 
-    this.p.fill(255, 160, 120);
     engine.enemyProjectiles.forEach((projectile) => {
+      if (this.drawProjectileSprite(engine.assets.props?.enemyOrb, projectile, engine.cameraX, 22)) return;
+      this.p.fill(255, 160, 120);
       this.p.circle(projectile.x - engine.cameraX, projectile.y, projectile.width);
     });
   }
@@ -371,7 +376,13 @@ class Renderer {
       const frameSpeed = state === "run" ? 12 : 8;
       const frameIndex = Math.floor((this.p.millis() / 1000) * frameSpeed) % frames.length;
       const sprite = frames[frameIndex];
-      this.drawFlippedImage(sprite, player.x - engine.cameraX, player.y, player.width, player.height, player.facing < 0);
+      const drawScale = 1.9;
+      const aspectRatio = sprite.width / sprite.height;
+      const drawHeight = player.height * drawScale;
+      const drawWidth = drawHeight * aspectRatio;
+      const drawX = player.x - engine.cameraX - (drawWidth - player.width) / 2;
+      const drawY = player.y - (drawHeight - player.height);
+      this.drawFlippedImage(sprite, drawX, drawY, drawWidth, drawHeight, player.facing < 0);
       return;
     }
 
@@ -393,6 +404,9 @@ class Renderer {
   }
 
   getPlayerAnimationState(player) {
+    if (player.hasSword && player.attackAnimationTimer > 0) {
+      return "attack";
+    }
     if (!player.onGround) {
       return "jump";
     }
@@ -416,30 +430,24 @@ class Renderer {
   }
 
   drawUI(engine) {
-    const player = engine.player;
-    const heartsText = `${"H".repeat(player.hearts)}${"-".repeat(player.maxHearts - player.hearts)}`;
+    this.p.push();
+    const panelX = 16;
+    const panelY = 14;
+    const panelW = this.p.width - 32;
+    const panelH = 86;
 
-    this.p.fill(255);
-    this.p.textSize(16);
-    this.p.textAlign(this.p.LEFT, this.p.TOP);
-    this.p.text(`Level: ${engine.level.name}`, 20, 18);
-    this.p.text(`Hearts: ${heartsText}`, 20, 40);
-    this.p.text(`Power: ${player.hasSword ? "Blade " : ""}${player.hasOrbSigil ? "Orb " : ""}${player.isGrown ? "Bloom" : ""}`.trim() || "None", 20, 62);
-    this.p.text("Attack: J/K | Orb: L", 20, 84);
-    this.p.text(`Time: ${this.formatTime(engine.levelElapsedTime || 0)}`, 20, 106);
-    this.p.text(`Progress: ${Math.floor((player.x / engine.worldWidth) * 100)}%`, 20, 128);
+    this.drawPixelPanel(panelX, panelY, panelW, panelH);
+    this.drawSingleHeader(engine, panelX, panelY, panelW, panelH);
+    this.p.pop();
 
     if (engine.messageTimer > 0) {
+      this.p.push();
+      this.p.textFont(this.menuFont || "monospace");
+      this.p.textAlign(this.p.LEFT, this.p.TOP);
+      this.p.textSize(14);
       this.p.fill(215, 235, 255);
-      this.p.text(engine.message, 20, 150);
-    }
-
-    if (!engine.exitUnlocked) {
-      this.p.fill(255, 210, 150);
-      this.p.text("Defeat the boss to break the spirit barrier.", this.p.width - 405, 42);
-    } else if (!engine.hasOverlay()) {
-      this.p.fill(150, 255, 180);
-      this.p.text("The path is opening...", this.p.width - 230, 42);
+      this.p.text(engine.message, 20, this.p.height - 34);
+      this.p.pop();
     }
   }
 
@@ -497,7 +505,7 @@ class Renderer {
     this.p.text(engine.overlay.subtitle, this.p.width / 2, boxY + 95);
 
     if (engine.overlay.stats) {
-      this.drawStarRow(this.p.width / 2, boxY + 150, engine.overlay.stats.stars);
+      this.drawStarRow(this.p.width / 2, boxY + 150, engine.overlay.stats.stars, engine.assets.props?.star);
 
       this.p.textSize(18);
       this.p.fill(237, 243, 255);
@@ -553,16 +561,17 @@ class Renderer {
     this.p.text(button.text, x + w / 2, y + h / 2 + 1);
   }
 
-  drawStarRow(centerX, y, earnedStars) {
-    const spacing = 62;
-    for (let i = 0; i < 3; i += 1) {
-      const x = centerX + (i - 1) * spacing;
-      const filled = i < earnedStars;
-      this.drawStar(x, y, 22, 10, filled);
+  drawStar(cx, cy, outerRadius, innerRadius, filled, sprite) {
+    if (sprite) {
+      this.p.push();
+      this.p.imageMode(this.p.CENTER);
+      if (!filled) this.p.tint(130, 150, 170, 210);
+      else this.p.tint(255, 255);
+      this.p.image(sprite, cx, cy, outerRadius * 2.3, outerRadius * 2.3);
+      this.p.pop();
+      return;
     }
-  }
 
-  drawStar(cx, cy, outerRadius, innerRadius, filled) {
     this.p.push();
     this.p.beginShape();
     this.p.stroke(16, 24, 36);
@@ -585,6 +594,175 @@ class Renderer {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = String(seconds % 60).padStart(2, "0");
     return `${minutes}:${remainingSeconds}`;
+  }
+
+  drawFloatingProp(image, x, y, size, phase = 0) {
+    this.p.push();
+    this.p.imageMode(this.p.CENTER);
+    this.p.drawingContext.shadowBlur = 18;
+    this.p.drawingContext.shadowColor = "rgba(210, 235, 255, 0.7)";
+    this.p.image(image, x, y + Math.sin(phase) * 4, size, size);
+    this.p.pop();
+  }
+
+  drawProjectileSprite(image, projectile, cameraX, size) {
+    if (!image) return false;
+    const angle = Math.atan2(projectile.velocityY || 0, projectile.velocityX || 1);
+    this.p.push();
+    this.p.translate(projectile.x - cameraX, projectile.y);
+    this.p.rotate(angle);
+    this.p.imageMode(this.p.CENTER);
+    this.p.drawingContext.shadowBlur = 16;
+    this.p.drawingContext.shadowColor = "rgba(220, 240, 255, 0.8)";
+    this.p.image(image, 0, 0, size, size);
+    this.p.pop();
+    return true;
+  }
+
+  drawPixelPanel(x, y, w, h) {
+    const pixel = 4;
+    this.p.noStroke();
+    this.p.fill(0, 0, 0, 100);
+    this.p.rect(x + pixel * 2, y + pixel * 2, w, h);
+
+    this.p.fill(44, 84, 125, 232);
+    this.p.rect(x, y, w, h);
+
+    this.p.fill(0);
+    this.p.rect(x, y, w, pixel);
+    this.p.rect(x, y, pixel, h);
+    this.p.rect(x + w - pixel, y, pixel, h);
+    this.p.rect(x, y + h - pixel, w, pixel);
+
+    this.p.fill(134, 179, 227);
+    this.p.rect(x + pixel, y + pixel, w - pixel * 2, pixel);
+    this.p.rect(x + pixel, y + pixel * 2, pixel, h - pixel * 3);
+
+    this.p.fill(29, 57, 87);
+    this.p.rect(x + pixel, y + h - pixel * 2, w - pixel * 2, pixel);
+    this.p.rect(x + w - pixel * 2, y + pixel, pixel, h - pixel * 3);
+  }
+
+  drawSingleHeader(engine, x, y, w, h) {
+    const player = engine.player;
+    const props = engine.assets.props || {};
+    const boss = engine.boss;
+    const bossName = Renderer.BOSS_LABELS[boss?.type] || "SPIRIT";
+    const hpRatio = boss ? Math.max(0, Math.min(1, boss.hp / boss.maxHp)) : 0;
+    const leftSectionX = x + 40;
+    const leftSectionW = 210;
+    const iconY = y + 40;
+    const iconSpacing = leftSectionW / 3;
+
+    this.p.push();
+    this.p.textFont(this.menuFont || "monospace");
+    this.p.textStyle(this.p.BOLD);
+    this.p.textAlign(this.p.LEFT, this.p.CENTER);
+
+    this.drawHeaderSkillIcon(leftSectionX + iconSpacing * 0.5, iconY, props.bloom, player.isGrown);
+    this.drawHeaderSkillIcon(leftSectionX + iconSpacing * 1.5, iconY, props.sword, player.hasSword);
+    this.drawHeaderSkillIcon(leftSectionX + iconSpacing * 2.5, iconY, props.playerOrb, player.hasOrbSigil);
+
+    const barW = Math.min(360, w * 0.34);
+    const barH = 16;
+    const barX = x + (w - barW) / 2;
+    const barY = y + 18;
+    this.p.noStroke();
+    this.p.fill(15, 24, 36, 220);
+    this.p.rect(barX, barY, barW, barH);
+    this.p.fill(230, 70, 90);
+    this.p.rect(barX, barY, barW * hpRatio, barH);
+
+    this.p.textAlign(this.p.CENTER, this.p.CENTER);
+    this.p.textSize(14);
+    this.p.fill(255, 244, 236);
+    this.p.text(`${boss ? boss.hp : 0}/${boss ? boss.maxHp : 0}`, x + w / 2, barY + barH / 2 + 1);
+    this.p.textSize(12);
+    this.p.fill(204, 224, 247);
+    this.p.text(bossName, x + w / 2, y + 48);
+
+    const statusY = y + 40;
+    const timeX = x + w - 255;
+    const heartsX = x + w - 126;
+    this.drawStatusRow(timeX, statusY, props.clock, this.formatTime(engine.levelElapsedTime || 0), 18);
+    this.drawHeartsRow(engine, heartsX, statusY, props.heart);
+
+    this.p.textAlign(this.p.CENTER, this.p.CENTER);
+    this.p.textSize(11);
+    this.p.fill(216, 230, 247);
+    this.p.text(
+      "MOVE A/D OR ARROWS   JUMP W/UP/SPACE   SWORD J/K   ORB L   ESC PAUSE",
+      x + w / 2,
+      y + h - 18
+    );
+    this.p.pop();
+  }
+
+  drawHeaderSkillIcon(x, y, image, active) {
+    this.p.push();
+    this.p.noStroke();
+    this.p.fill(active ? 20 : 12, active ? 45 : 24, active ? 73 : 36, 180);
+    this.p.rect(x - 18, y - 18, 36, 36);
+
+    if (image) {
+      this.p.imageMode(this.p.CENTER);
+      this.p.tint(255, active ? 255 : 72);
+      this.p.image(image, x, y, 24, 24);
+      this.p.noTint();
+    } else {
+      this.p.fill(255, 255, 255, active ? 255 : 72);
+      this.p.circle(x, y, 16);
+    }
+    this.p.pop();
+  }
+
+  drawStatusRow(x, y, image, text, iconSize) {
+    this.p.push();
+    this.p.textAlign(this.p.LEFT, this.p.CENTER);
+    this.p.textSize(14);
+    if (image) {
+      this.p.imageMode(this.p.CENTER);
+      this.p.image(image, x + iconSize / 2, y, iconSize, iconSize);
+    } else {
+      this.p.fill(255);
+      this.p.circle(x + iconSize / 2, y, iconSize - 4);
+    }
+
+    this.p.fill(245, 248, 255);
+    this.p.text(text, x + iconSize + 10, y + 1);
+    this.p.pop();
+  }
+
+  drawHeartsRow(engine, x, y, image) {
+    const total = engine.player.maxHearts || 3;
+    const filled = engine.player.hearts || 0;
+
+    this.p.push();
+    this.p.textAlign(this.p.LEFT, this.p.CENTER);
+    if (image) {
+      for (let i = 0; i < total; i += 1) {
+        this.p.push();
+        this.p.imageMode(this.p.CENTER);
+        if (i >= filled) this.p.tint(120, 135, 160, 110);
+        this.p.image(image, x + 11 + i * 28, y, 22, 22);
+        this.p.pop();
+      }
+      this.p.pop();
+      return;
+    }
+
+    this.p.fill(245, 120, 145);
+    this.p.text(`${filled}/${total}`, x, y + 1);
+    this.p.pop();
+  }
+
+  drawStarRow(centerX, y, earnedStars, sprite = null) {
+    const spacing = 62;
+    for (let i = 0; i < 3; i += 1) {
+      const x = centerX + (i - 1) * spacing;
+      const filled = i < earnedStars;
+      this.drawStar(x, y, 22, 10, filled, sprite);
+    }
   }
 }
 
