@@ -38,9 +38,9 @@ const level1 = {
     { type: "roamer", x: 2890, y: 600, patrolMinX: 2720, patrolMaxX: 3010, speed: 116, hp: 1 }
   ],
   pickups: [
-    { type: "spiritBloom", x: 820, y: 430, collected: false },
-    { type: "moonBlade", x: 1940, y: 415, collected: false },
-    { type: "spiritBloom", x: 2810, y: 480, collected: false }
+    { type: "spiritBloom", x: 890, y: 430, collected: false },
+    { type: "moonBlade", x: 1990, y: 415, collected: false },
+    { type: "spiritBloom", x: 2860, y: 480, collected: false }
   ],
   boss: {
     type: "villageWarden",

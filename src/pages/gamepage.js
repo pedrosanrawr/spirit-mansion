@@ -45,6 +45,13 @@ class GamePage {
       return;
     }
 
+    if (this.engine.isHelpDialogOpen && this.engine.isHelpDialogOpen()) {
+      if (key === "Escape") {
+        this.engine.toggleHelpDialog(false);
+      }
+      return;
+    }
+
     if (this.pauseMenu) {
       if (key === "Escape") {
         this.pauseMenu = false;
@@ -63,7 +70,16 @@ class GamePage {
   }
 
   mousePressed() {
+    if (this.engine.isHelpDialogOpen && this.engine.isHelpDialogOpen()) {
+      this.engine.toggleHelpDialog(false);
+      return;
+    }
+
     if (this.engine.handleOverlayClick && this.engine.handleOverlayClick(this.p.mouseX, this.p.mouseY)) {
+      return;
+    }
+
+    if (this.engine.handleHeaderClick && this.engine.handleHeaderClick(this.p.mouseX, this.p.mouseY)) {
       return;
     }
   }
@@ -71,6 +87,9 @@ class GamePage {
   mouseMoved() {
     if (this.engine.updateOverlayHover) {
       this.engine.updateOverlayHover(this.p.mouseX, this.p.mouseY);
+    }
+    if (this.engine.updateHeaderHover) {
+      this.engine.updateHeaderHover(this.p.mouseX, this.p.mouseY);
     }
   }
 }

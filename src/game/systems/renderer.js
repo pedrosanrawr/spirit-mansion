@@ -28,6 +28,7 @@ class Renderer {
     this.drawExit(engine);
     this.drawPlayer(engine);
     this.drawUI(engine);
+    this.drawHelpDialog(engine);
     this.drawOverlay(engine);
   }
 
@@ -681,20 +682,36 @@ class Renderer {
     this.p.fill(204, 224, 247);
     this.p.text(bossName, x + w / 2, y + 48);
 
+    const helpButton = {
+      x: x + w - 84,
+      y: y + 26,
+      width: 28,
+      height: 28,
+      hovered: engine.headerHelpButton?.hovered || false
+    };
+    engine.setHeaderHelpButton(helpButton);
+
     const statusY = y + 40;
-    const timeX = x + w - 255;
-    const heartsX = x + w - 126;
+    const timeX = x + w - 314;
+    const heartsX = x + w - 204;
     this.drawStatusRow(timeX, statusY, props.clock, this.formatTime(engine.levelElapsedTime || 0), 18);
     this.drawHeartsRow(engine, heartsX, statusY, props.heart);
+    this.drawHeaderIconButton(helpButton, "?");
+    this.p.pop();
+  }
 
+  drawHeaderIconButton(button, label) {
+    this.p.push();
+    this.p.noStroke();
+    this.p.fill(0, 0, 0, 90);
+    this.p.rect(button.x + 2, button.y + 2, button.width, button.height);
+    this.p.fill(button.hovered ? 60 : 20, button.hovered ? 102 : 45, button.hovered ? 148 : 73, 220);
+    this.p.rect(button.x, button.y, button.width, button.height);
+    this.p.fill(255);
     this.p.textAlign(this.p.CENTER, this.p.CENTER);
-    this.p.textSize(11);
-    this.p.fill(216, 230, 247);
-    this.p.text(
-      "MOVE A/D OR ARROWS   JUMP W/UP/SPACE   SWORD J/K   ORB L   ESC PAUSE",
-      x + w / 2,
-      y + h - 18
-    );
+    this.p.textStyle(this.p.BOLD);
+    this.p.textSize(18);
+    this.p.text(label, button.x + button.width / 2, button.y + button.height / 2 + 1);
     this.p.pop();
   }
 
@@ -763,6 +780,50 @@ class Renderer {
       const filled = i < earnedStars;
       this.drawStar(x, y, 22, 10, filled, sprite);
     }
+  }
+
+  drawHelpDialog(engine) {
+    if (!engine.isHelpDialogOpen || !engine.isHelpDialogOpen()) return;
+
+    this.p.push();
+    this.p.noStroke();
+    this.p.fill(8, 10, 18, 190);
+    this.p.rect(0, 0, this.p.width, this.p.height);
+
+    const boxW = 520;
+    const boxH = 300;
+    const boxX = (this.p.width - boxW) / 2;
+    const boxY = (this.p.height - boxH) / 2;
+
+    this.drawPixelPanel(boxX, boxY, boxW, boxH);
+
+    this.p.textFont(this.menuFont || "monospace");
+    this.p.textAlign(this.p.CENTER, this.p.CENTER);
+    this.p.textStyle(this.p.BOLD);
+    this.p.textSize(24);
+    this.p.fill(236, 244, 255);
+    this.p.text("HOW TO PLAY", this.p.width / 2, boxY + 42);
+
+    const controls = [
+      "MOVE: A / D or LEFT / RIGHT",
+      "JUMP: W / UP / SPACE",
+      "SWORD: J or K",
+      "ORB: L",
+      "PAUSE: ESC"
+    ];
+
+    this.p.textAlign(this.p.LEFT, this.p.CENTER);
+    this.p.textSize(16);
+    this.p.fill(214, 228, 247);
+    controls.forEach((line, index) => {
+      this.p.text(line, boxX + 72, boxY + 98 + index * 34);
+    });
+
+    this.p.textAlign(this.p.CENTER, this.p.CENTER);
+    this.p.textSize(13);
+    this.p.fill(255, 220, 168);
+    this.p.text("Click anywhere or press ESC to close", this.p.width / 2, boxY + boxH - 34);
+    this.p.pop();
   }
 }
 

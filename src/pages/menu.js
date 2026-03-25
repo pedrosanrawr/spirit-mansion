@@ -9,6 +9,7 @@ class MenuPage {
     this.menuBackground = null;
     this.menuBackgroundFailed = false;
     this.menuFont = null;
+    this.helpDialogOpen = false;
     this.lanterns = [
       { xRatio: 0.182, yRatio: 0.710, phase: 0.2 },
       { xRatio: 0.765, yRatio: 0.742, phase: 2.4 }
@@ -83,11 +84,11 @@ class MenuPage {
   }
 
   showHelp() {
-    alert("Controls:\n- Arrow Keys: Move\n- Space: Jump/Skip Lore\n- ESC: Pause");
+    this.helpDialogOpen = true;
   }
 
   onEnter() {
-    // Called when entering this page
+    this.helpDialogOpen = false;
   }
 
   update(deltaSeconds = 1 / 60) {
@@ -123,6 +124,7 @@ class MenuPage {
       this.drawButton(button);
     });
     this.p.smooth();
+    this.drawHelpDialog();
   }
 
   createFireflies(count) {
@@ -259,12 +261,91 @@ class MenuPage {
     this.p.text(button.text, x + w / 2, y + h / 2 + 1);
   }
 
+  drawHelpDialog() {
+    if (!this.helpDialogOpen) return;
+
+    this.p.push();
+    this.p.noStroke();
+    this.p.fill(8, 10, 18, 190);
+    this.p.rect(0, 0, this.p.width, this.p.height);
+
+    const boxW = 520;
+    const boxH = 300;
+    const boxX = (this.p.width - boxW) / 2;
+    const boxY = (this.p.height - boxH) / 2;
+
+    this.drawPixelPanel(boxX, boxY, boxW, boxH);
+
+    this.p.textFont(this.menuFont || "monospace");
+    this.p.textAlign(this.p.CENTER, this.p.CENTER);
+    this.p.textStyle(this.p.BOLD);
+    this.p.textSize(24);
+    this.p.fill(236, 244, 255);
+    this.p.text("HOW TO PLAY", this.p.width / 2, boxY + 42);
+
+    const controls = [
+      "MOVE: A / D or LEFT / RIGHT",
+      "JUMP: W / UP / SPACE",
+      "SWORD: J or K",
+      "ORB: L",
+      "PAUSE: ESC"
+    ];
+
+    this.p.textAlign(this.p.LEFT, this.p.CENTER);
+    this.p.textSize(16);
+    this.p.fill(214, 228, 247);
+    controls.forEach((line, index) => {
+      this.p.text(line, boxX + 72, boxY + 98 + index * 34);
+    });
+
+    this.p.textAlign(this.p.CENTER, this.p.CENTER);
+    this.p.textSize(13);
+    this.p.fill(255, 220, 168);
+    this.p.text("Click anywhere or press ESC to close", this.p.width / 2, boxY + boxH - 34);
+    this.p.pop();
+  }
+
+  drawPixelPanel(x, y, w, h) {
+    const pixel = 4;
+    this.p.noStroke();
+    this.p.fill(0, 0, 0, 100);
+    this.p.rect(x + pixel * 2, y + pixel * 2, w, h);
+
+    this.p.fill(44, 84, 125, 232);
+    this.p.rect(x, y, w, h);
+
+    this.p.fill(0);
+    this.p.rect(x, y, w, pixel);
+    this.p.rect(x, y, pixel, h);
+    this.p.rect(x + w - pixel, y, pixel, h);
+    this.p.rect(x, y + h - pixel, w, pixel);
+
+    this.p.fill(134, 179, 227);
+    this.p.rect(x + pixel, y + pixel, w - pixel * 2, pixel);
+    this.p.rect(x + pixel, y + pixel * 2, pixel, h - pixel * 3);
+
+    this.p.fill(29, 57, 87);
+    this.p.rect(x + pixel, y + h - pixel * 2, w - pixel * 2, pixel);
+    this.p.rect(x + w - pixel * 2, y + pixel, pixel, h - pixel * 3);
+  }
+
   mousePressed() {
+    if (this.helpDialogOpen) {
+      this.helpDialogOpen = false;
+      return;
+    }
+
     this.buttons.forEach(button => {
       if (this.isMouseOverButton(button)) {
         button.action();
       }
     });
+  }
+
+  keyPressed(key) {
+    if (this.helpDialogOpen && key === "Escape") {
+      this.helpDialogOpen = false;
+    }
   }
 
   mouseMoved() {
