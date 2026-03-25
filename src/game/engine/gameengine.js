@@ -54,6 +54,8 @@ class GameEngine {
     this.defeatedEnemies = 0;
     this.totalEnemyCount = 0;
     this.helpDialogOpen = false;
+    this.helpDialogScroll = 0;
+    this.helpDialogMaxScroll = 0;
     this.headerHelpButton = null;
 
     this.input = new InputSystem(p, C);
@@ -79,6 +81,8 @@ class GameEngine {
     this.defeatedEnemies = 0;
     this.totalEnemyCount = (this.level.enemies || []).length;
     this.helpDialogOpen = false;
+    this.helpDialogScroll = 0;
+    this.helpDialogMaxScroll = 0;
     this.headerHelpButton = null;
 
     this.platforms = createPlatforms(this.level.platforms || []);
@@ -472,7 +476,6 @@ class GameEngine {
   }
 
   checkHazardsAndFalls() {
-    // Hazards are visual pit zones. Player should only lose life after actually falling.
     if (this.player.y > this.p.height + 120) {
       this.damagePlayer(1, "You fell into the abyss.", { ignoreBloomShield: true });
     }
@@ -641,6 +644,19 @@ class GameEngine {
 
   toggleHelpDialog(forceValue = !this.helpDialogOpen) {
     this.helpDialogOpen = Boolean(forceValue);
+    if (this.helpDialogOpen) {
+      this.helpDialogScroll = 0;
+    }
+  }
+
+  adjustHelpDialogScroll(delta) {
+    if (!this.helpDialogOpen || this.helpDialogMaxScroll <= 0) return;
+    this.helpDialogScroll = clamp(this.helpDialogScroll + delta, 0, this.helpDialogMaxScroll);
+  }
+
+  setHelpDialogMaxScroll(maxScroll) {
+    this.helpDialogMaxScroll = Math.max(0, maxScroll || 0);
+    this.helpDialogScroll = clamp(this.helpDialogScroll, 0, this.helpDialogMaxScroll);
   }
 
   setHeaderHelpButton(button) {

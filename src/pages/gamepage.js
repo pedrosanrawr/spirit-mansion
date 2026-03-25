@@ -48,6 +48,10 @@ class GamePage {
     if (this.engine.isHelpDialogOpen && this.engine.isHelpDialogOpen()) {
       if (key === "Escape") {
         this.engine.toggleHelpDialog(false);
+      } else if (key === "ArrowDown" && this.engine.adjustHelpDialogScroll) {
+        this.engine.adjustHelpDialogScroll(40);
+      } else if (key === "ArrowUp" && this.engine.adjustHelpDialogScroll) {
+        this.engine.adjustHelpDialogScroll(-40);
       }
       return;
     }
@@ -91,6 +95,13 @@ class GamePage {
     if (this.engine.updateHeaderHover) {
       this.engine.updateHeaderHover(this.p.mouseX, this.p.mouseY);
     }
+  }
+
+  mouseWheel(event) {
+    if (this.engine.isHelpDialogOpen && this.engine.isHelpDialogOpen() && this.engine.adjustHelpDialogScroll) {
+      this.engine.adjustHelpDialogScroll(event.delta);
+    }
+    return false;
   }
 }
 

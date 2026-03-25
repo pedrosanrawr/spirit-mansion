@@ -10,6 +10,8 @@ class MenuPage {
     this.menuBackgroundFailed = false;
     this.menuFont = null;
     this.helpDialogOpen = false;
+    this.helpScroll = 0;
+    this.helpMaxScroll = 0;
     this.lanterns = [
       { xRatio: 0.182, yRatio: 0.710, phase: 0.2 },
       { xRatio: 0.765, yRatio: 0.742, phase: 2.4 }
@@ -85,10 +87,12 @@ class MenuPage {
 
   showHelp() {
     this.helpDialogOpen = true;
+    this.helpScroll = 0;
   }
 
   onEnter() {
     this.helpDialogOpen = false;
+    this.helpScroll = 0;
   }
 
   update(deltaSeconds = 1 / 60) {
@@ -269,10 +273,15 @@ class MenuPage {
     this.p.fill(8, 10, 18, 190);
     this.p.rect(0, 0, this.p.width, this.p.height);
 
-    const boxW = 520;
-    const boxH = 300;
+    const boxW = 860;
+    const boxH = 500;
     const boxX = (this.p.width - boxW) / 2;
     const boxY = (this.p.height - boxH) / 2;
+    const textX = boxX + 38;
+    const contentTop = boxY + 84;
+    const viewportY = boxY + 78;
+    const viewportH = boxH - 126;
+    const viewportW = boxW - 68;
 
     this.drawPixelPanel(boxX, boxY, boxW, boxH);
 
@@ -283,26 +292,108 @@ class MenuPage {
     this.p.fill(236, 244, 255);
     this.p.text("HOW TO PLAY", this.p.width / 2, boxY + 42);
 
-    const controls = [
-      "MOVE: A / D or LEFT / RIGHT",
-      "JUMP: W / UP / SPACE",
+    const helpLines = [
+      "GOAL",
+      "Guide Chihiro through the spirit world, survive each stage, defeat the boss, and clear all three chapters to escape the mansion.",
+      "",
+      "CONTROL KEYS",
+      "MOVE: LEFT / RIGHT",
+      "JUMP: UP",
       "SWORD: J or K",
       "ORB: L",
-      "PAUSE: ESC"
+      "PAUSE: ESC",
+      "",
+      "SKILLS",
+      "Spirit Bloom: makes Chihiro larger and absorbs one hit before breaking.",
+      "Moon Blade: unlocks melee attacks so you can slash nearby enemies.",
+      "Orb Sigil: unlocks ranged spirit orbs that travel straight ahead.",
+      "",
+      "ENEMIES AND BOSSES",
+      "Roamer: patrols a fixed area and damages the player on contact.",
+      "Chaser: stays idle at first, then runs toward the player when close enough.",
+      "Flyer: moves in the air and fires spirit orbs from a distance.",
+      "Boh: the Village boss with high health and close-range pressure.",
+      "Yubaba: the Forest boss that chases and performs sword-range attacks.",
+      "No-Face: the Mansion boss that floats and fires spread projectiles."
     ];
 
-    this.p.textAlign(this.p.LEFT, this.p.CENTER);
-    this.p.textSize(16);
-    this.p.fill(214, 228, 247);
-    controls.forEach((line, index) => {
-      this.p.text(line, boxX + 72, boxY + 98 + index * 34);
-    });
+    const contentHeight = this.measureHelpSectionHeight(helpLines);
+    this.helpMaxScroll = Math.max(0, contentHeight - viewportH);
+    this.helpScroll = Math.min(this.helpScroll, this.helpMaxScroll);
+
+    const ctx = this.p.drawingContext;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(boxX + 24, viewportY, viewportW, viewportH);
+    ctx.clip();
+
+    this.p.push();
+    this.p.translate(0, -this.helpScroll);
+    this.p.textAlign(this.p.LEFT, this.p.TOP);
+    this.p.textSize(14);
+    this.drawHelpSection(helpLines, textX, contentTop, viewportW - 28);
+    this.p.pop();
+
+    ctx.restore();
+
+    this.drawScrollIndicator(boxX + boxW - 24, viewportY, viewportH, this.helpScroll, this.helpMaxScroll);
 
     this.p.textAlign(this.p.CENTER, this.p.CENTER);
     this.p.textSize(13);
     this.p.fill(255, 220, 168);
-    this.p.text("Click anywhere or press ESC to close", this.p.width / 2, boxY + boxH - 34);
+    this.p.text("Scroll to read, then click anywhere or press ESC to close", this.p.width / 2, boxY + boxH - 34);
     this.p.pop();
+  }
+
+  drawHelpSection(lines, x, y, width) {
+    let currentY = y;
+    lines.forEach((line, index) => {
+      if (!line) {
+        currentY += 10;
+        return;
+      }
+
+      const isHeading = index === 0 || line === "SKILLS";
+      this.p.fill(isHeading ? 236 : 214, isHeading ? 244 : 228, isHeading ? 255 : 247);
+      this.p.textStyle(isHeading ? this.p.BOLD : this.p.NORMAL);
+      this.p.textSize(isHeading ? 16 : 14);
+      this.p.text(line, x, currentY, width, isHeading ? 22 : 56);
+      currentY += isHeading ? 28 : 44;
+    });
+    return currentY - y;
+  }
+
+  measureHelpSectionHeight(lines) {
+    let total = 0;
+    lines.forEach((line, index) => {
+      if (!line) {
+        total += 10;
+        return;
+      }
+
+      const isHeading = index === 0 || line === "SKILLS";
+      total += isHeading ? 28 : 44;
+    });
+    return total;
+  }
+
+  drawScrollIndicator(x, y, height, scroll, maxScroll) {
+    if (maxScroll <= 0) return;
+
+    const thumbHeight = Math.max(54, height * 0.28);
+    const thumbTravel = Math.max(0, height - thumbHeight);
+    const thumbY = y + (scroll / maxScroll) * thumbTravel;
+
+    this.p.noStroke();
+    this.p.fill(18, 29, 48, 220);
+    this.p.rect(x, y, 8, height);
+    this.p.fill(170, 210, 255, 220);
+    this.p.rect(x, thumbY, 8, thumbHeight);
+  }
+
+  adjustHelpScroll(delta) {
+    if (!this.helpDialogOpen || this.helpMaxScroll <= 0) return;
+    this.helpScroll = this.p.constrain(this.helpScroll + delta, 0, this.helpMaxScroll);
   }
 
   drawPixelPanel(x, y, w, h) {
@@ -343,9 +434,21 @@ class MenuPage {
   }
 
   keyPressed(key) {
-    if (this.helpDialogOpen && key === "Escape") {
-      this.helpDialogOpen = false;
+    if (this.helpDialogOpen) {
+      if (key === "Escape") {
+        this.helpDialogOpen = false;
+      } else if (key === "ArrowDown") {
+        this.adjustHelpScroll(40);
+      } else if (key === "ArrowUp") {
+        this.adjustHelpScroll(-40);
+      }
     }
+  }
+
+  mouseWheel(event) {
+    if (!this.helpDialogOpen) return false;
+    this.adjustHelpScroll(event.delta);
+    return false;
   }
 
   mouseMoved() {

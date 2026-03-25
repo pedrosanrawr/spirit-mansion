@@ -18,6 +18,36 @@ class Renderer {
     bathhouseMatron: "NO-FACE"
   };
 
+  static LEVEL_HELP = {
+    1: {
+      chapter: "Village",
+      goal: "Cross the village, collect useful power-ups, and defeat Boh to break the first spirit barrier.",
+      enemies: [
+        "Roamer: patrols a short path and is safest to avoid or stomp from above."
+      ],
+      boss: "Boh: the Village boss. Stay mobile, avoid body contact, and attack while creating space."
+    },
+    2: {
+      chapter: "Forest",
+      goal: "Use your new tools to survive faster enemies and bring down Yubaba to open the way to the mansion.",
+      enemies: [
+        "Roamer: basic patrol threat that guards platforms and narrow paths.",
+        "Chaser: notices the player nearby and runs directly toward Chihiro."
+      ],
+      boss: "Yubaba: aggressively chases the player and deals heavy damage with close sword attacks."
+    },
+    3: {
+      chapter: "Mansion",
+      goal: "Survive the mansion's mixed enemy patterns, dodge projectiles, and defeat No-Face to finish the game.",
+      enemies: [
+        "Roamer: simple contact enemy that controls ground space.",
+        "Chaser: rushes the player when within range.",
+        "Flyer: patrols in the air and shoots spirit orbs from a distance."
+      ],
+      boss: "No-Face: floats around the arena and fires spread projectiles, so ranged pressure and movement matter."
+    }
+  };
+
   draw(engine) {
     this.drawBackground(engine);
     this.drawLevelGeometry(engine);
@@ -782,6 +812,51 @@ class Renderer {
     }
   }
 
+  drawHelpSection(lines, x, y, width) {
+    let currentY = y;
+    lines.forEach((line, index) => {
+      if (!line) {
+        currentY += 10;
+        return;
+      }
+
+      const isHeading = index === 0;
+      this.p.fill(isHeading ? 236 : 214, isHeading ? 244 : 228, isHeading ? 255 : 247);
+      this.p.textStyle(isHeading ? this.p.BOLD : this.p.NORMAL);
+      this.p.textSize(isHeading ? 16 : 14);
+      this.p.text(line, x, currentY, width, isHeading ? 22 : 60);
+      currentY += isHeading ? 28 : 44;
+    });
+    return currentY - y;
+  }
+
+  measureHelpSectionHeight(lines) {
+    let total = 0;
+    lines.forEach((line, index) => {
+      if (!line) {
+        total += 10;
+        return;
+      }
+
+      total += index === 0 ? 28 : 44;
+    });
+    return total;
+  }
+
+  drawScrollIndicator(x, y, height, scroll, maxScroll) {
+    if (maxScroll <= 0) return;
+
+    const thumbHeight = Math.max(54, height * 0.28);
+    const thumbTravel = Math.max(0, height - thumbHeight);
+    const thumbY = y + (scroll / maxScroll) * thumbTravel;
+
+    this.p.noStroke();
+    this.p.fill(18, 29, 48, 220);
+    this.p.rect(x, y, 8, height);
+    this.p.fill(170, 210, 255, 220);
+    this.p.rect(x, thumbY, 8, thumbHeight);
+  }
+
   drawHelpDialog(engine) {
     if (!engine.isHelpDialogOpen || !engine.isHelpDialogOpen()) return;
 
@@ -790,10 +865,16 @@ class Renderer {
     this.p.fill(8, 10, 18, 190);
     this.p.rect(0, 0, this.p.width, this.p.height);
 
-    const boxW = 520;
-    const boxH = 300;
+    const boxW = 860;
+    const boxH = 500;
     const boxX = (this.p.width - boxW) / 2;
     const boxY = (this.p.height - boxH) / 2;
+    const textX = boxX + 38;
+    const contentTop = boxY + 84;
+    const viewportY = boxY + 78;
+    const viewportH = boxH - 126;
+    const viewportW = boxW - 68;
+    const levelHelp = Renderer.LEVEL_HELP[engine.levelId] || Renderer.LEVEL_HELP[1];
 
     this.drawPixelPanel(boxX, boxY, boxW, boxH);
 
@@ -804,25 +885,51 @@ class Renderer {
     this.p.fill(236, 244, 255);
     this.p.text("HOW TO PLAY", this.p.width / 2, boxY + 42);
 
-    const controls = [
-      "MOVE: A / D or LEFT / RIGHT",
-      "JUMP: W / UP / SPACE",
+    const helpLines = [
+      `${levelHelp.chapter} OBJECTIVE`,
+      levelHelp.goal,
+      "",
+      "CONTROL KEYS",
+      "MOVE: LEFT / RIGHT",
+      "JUMP: UP",
       "SWORD: J or K",
       "ORB: L",
-      "PAUSE: ESC"
+      "PAUSE: ESC",
+      "",
+      "SKILLS",
+      "Spirit Bloom: one free shield hit and a larger body.",
+      "Moon Blade: close-range slash for melee combat.",
+      "Orb Sigil: ranged spirit orb attack.",
+      "",
+      "CURRENT THREATS",
+      ...levelHelp.enemies,
+      levelHelp.boss
     ];
 
-    this.p.textAlign(this.p.LEFT, this.p.CENTER);
-    this.p.textSize(16);
-    this.p.fill(214, 228, 247);
-    controls.forEach((line, index) => {
-      this.p.text(line, boxX + 72, boxY + 98 + index * 34);
-    });
+    const contentHeight = this.measureHelpSectionHeight(helpLines);
+    engine.setHelpDialogMaxScroll(contentHeight - viewportH);
+
+    const ctx = this.p.drawingContext;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(boxX + 24, viewportY, viewportW, viewportH);
+    ctx.clip();
+
+    this.p.push();
+    this.p.translate(0, -engine.helpDialogScroll);
+    this.p.textAlign(this.p.LEFT, this.p.TOP);
+    this.p.textSize(14);
+    this.drawHelpSection(helpLines, textX, contentTop, viewportW - 28);
+    this.p.pop();
+
+    ctx.restore();
+
+    this.drawScrollIndicator(boxX + boxW - 24, viewportY, viewportH, engine.helpDialogScroll, engine.helpDialogMaxScroll);
 
     this.p.textAlign(this.p.CENTER, this.p.CENTER);
     this.p.textSize(13);
     this.p.fill(255, 220, 168);
-    this.p.text("Click anywhere or press ESC to close", this.p.width / 2, boxY + boxH - 34);
+    this.p.text("Scroll to read, then click anywhere or press ESC to close", this.p.width / 2, boxY + boxH - 34);
     this.p.pop();
   }
 }
