@@ -337,6 +337,7 @@ class MenuPage {
 
     this.buttons.forEach(button => {
       if (this.isMouseOverButton(button)) {
+        this.router.playUiClickSound?.();
         button.action();
       }
     });

@@ -369,20 +369,18 @@ class Renderer {
 
     const animations = engine.assets.playerAnimations || {};
     const state = this.getPlayerAnimationState(player);
-    const frames = animations[state] && animations[state].length > 0
-      ? animations[state]
-      : animations.idle || [];
+    const frames = this.getPlayerAnimationFrames(player, animations, state);
 
     if (frames.length > 0) {
-      const frameSpeed = state === "run" ? 12 : 8;
+      const frameSpeed = state === "run" ? 12 : state === "attack" ? 10 : 8;
       const frameIndex = Math.floor((this.p.millis() / 1000) * frameSpeed) % frames.length;
       const sprite = frames[frameIndex];
-      const drawScale = 1.9;
+      const drawScale = this.getPlayerDrawScale(player, state);
       const aspectRatio = sprite.width / sprite.height;
       const drawHeight = player.height * drawScale;
       const drawWidth = drawHeight * aspectRatio;
       const drawX = player.x - engine.cameraX - (drawWidth - player.width) / 2;
-      const drawY = player.y - (drawHeight - player.height);
+      const drawY = player.y - (drawHeight - player.height) + this.getPlayerVerticalOffset(player, state);
       this.drawFlippedImage(sprite, drawX, drawY, drawWidth, drawHeight, player.facing < 0);
       return;
     }
@@ -399,9 +397,48 @@ class Renderer {
       return;
     }
 
-    // Fallback when no sprite assets are loaded.
     this.p.fill(180, 230, 255);
     this.p.rect(player.x - engine.cameraX, player.y, player.width, player.height);
+  }
+
+  getPlayerAnimationFrames(player, animations, state) {
+    if (player.hasSword) {
+      if (state === "attack" && (animations.swordAttack || []).length > 0) {
+        return animations.swordAttack;
+      }
+      if (state === "run" && (animations.swordRun || []).length > 0) {
+        return animations.swordRun;
+      }
+      if (state === "idle" && (animations.swordIdle || []).length > 0) {
+        return animations.swordIdle;
+      }
+    }
+
+    return animations[state] && animations[state].length > 0
+      ? animations[state]
+      : animations.idle || [];
+  }
+
+  getPlayerDrawScale(player, state) {
+    const bloomBonus = player.isGrown ? 0.22 : 0;
+
+    if (state === "jump") {
+      return 1.95 + bloomBonus;
+    }
+    if (player.hasSword) {
+      return (state === "attack" ? 2.3 : 2.22) + bloomBonus;
+    }
+    return 1.9 + bloomBonus;
+  }
+
+  getPlayerVerticalOffset(player, state) {
+    if (state === "jump") {
+      return 14;
+    }
+    if (player.hasSword) {
+      return state === "attack" ? 18 : 16;
+    }
+    return 8;
   }
 
   getPlayerAnimationState(player) {

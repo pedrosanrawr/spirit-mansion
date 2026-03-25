@@ -35,12 +35,13 @@ import nofaceFloat1Path from "../../assets/sprites/noface/float1.png";
 import nofaceFloatsteady2Path from "../../assets/sprites/noface/floatsteady2.png";
 import nofaceFloat3Path from "../../assets/sprites/noface/float3.png";
 import nofaceShootPath from "../../assets/sprites/noface/shoot.png";
-import chihiroIdlePath from "../../assets/sprites/chihiro/idle.png";
-import chihiroWalk1Path from "../../assets/sprites/chihiro/walk1.png";
-import chihiroWalk2Path from "../../assets/sprites/chihiro/walk2.png";
-import chihiroJumpPath from "../../assets/sprites/chihiro/jump.png";
-import chihiroSword1Path from "../../assets/sprites/chihiro/sword1.png";
-import chihiroSword2Path from "../../assets/sprites/chihiro/sword2.png";
+import chiroIdlePath from "../../assets/sprites/chiro/idle.png";
+import chiroWalk1Path from "../../assets/sprites/chiro/walk.png";
+import chiroWalk2Path from "../../assets/sprites/chiro/walk2.png";
+import chiroJumpPath from "../../assets/sprites/chiro/jump.png";
+import chiroSwordStandPath from "../../assets/sprites/chiro/sword_idle.png";
+import chiroSwordWalkPath from "../../assets/sprites/chiro/sword_walk.png";
+import chiroSwordSwingPath from "../../assets/sprites/chiro/sword_swing.png";
 import bloomPropPath from "../../assets/props/bloom.png";
 import clockPropPath from "../../assets/props/clock.png";
 import enemyOrbPropPath from "../../assets/props/enemyorb.png";
@@ -60,7 +61,10 @@ class AssetLoader {
         idle: [],
         run: [],
         jump: [],
-        attack: []
+        attack: [],
+        swordIdle: [],
+        swordRun: [],
+        swordAttack: []
       },
       enemySprites: {},
       bossSprites: {},
@@ -87,25 +91,32 @@ class AssetLoader {
   }
 
   async preloadCommonAssets() {
-    const chihiroFrames = await Promise.all([
-      this.loadOptionalImage(chihiroIdlePath),
-      this.loadOptionalImage(chihiroWalk1Path),
-      this.loadOptionalImage(chihiroWalk2Path),
-      this.loadOptionalImage(chihiroJumpPath),
-      this.loadOptionalImage(chihiroSword1Path),
-      this.loadOptionalImage(chihiroSword2Path)
+    const chiroFrames = await Promise.all([
+      this.loadOptionalImage(chiroIdlePath),
+      this.loadOptionalImage(chiroWalk1Path),
+      this.loadOptionalImage(chiroWalk2Path),
+      this.loadOptionalImage(chiroJumpPath),
+      this.loadOptionalImage(chiroSwordStandPath),
+      this.loadOptionalImage(chiroSwordWalkPath),
+      this.loadOptionalImage(chiroSwordSwingPath)
     ]);
 
-    this.assets.playerAnimations.idle = chihiroFrames[0] ? [chihiroFrames[0]] : [];
-    this.assets.playerAnimations.run = chihiroFrames.slice(1, 3).filter(Boolean);
-    this.assets.playerAnimations.jump = chihiroFrames[3] ? [chihiroFrames[3]] : [];
-    this.assets.playerAnimations.attack = chihiroFrames.slice(4).filter(Boolean);
+    this.assets.playerAnimations.idle = chiroFrames[0] ? [chiroFrames[0]] : [];
+    this.assets.playerAnimations.run = chiroFrames.slice(1, 3).filter(Boolean);
+    this.assets.playerAnimations.jump = chiroFrames[3] ? [chiroFrames[3]] : [];
+    this.assets.playerAnimations.attack = chiroFrames[6] ? [chiroFrames[6]] : [];
+    this.assets.playerAnimations.swordIdle = chiroFrames[4] ? [chiroFrames[4]] : [];
+    this.assets.playerAnimations.swordRun = chiroFrames[5] ? [chiroFrames[5]] : [];
+    this.assets.playerAnimations.swordAttack = chiroFrames[6] ? [chiroFrames[6]] : [];
 
     if (
       this.assets.playerAnimations.idle.length === 0 &&
       this.assets.playerAnimations.run.length === 0 &&
       this.assets.playerAnimations.jump.length === 0 &&
-      this.assets.playerAnimations.attack.length === 0
+      this.assets.playerAnimations.attack.length === 0 &&
+      this.assets.playerAnimations.swordIdle.length === 0 &&
+      this.assets.playerAnimations.swordRun.length === 0 &&
+      this.assets.playerAnimations.swordAttack.length === 0
     ) {
       this.assets.playerSprite = null;
     }

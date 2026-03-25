@@ -45,6 +45,7 @@ new p5((p) => {
   };
 
   p.mousePressed = () => {
+    router?.updateBackgroundMusic?.();
     const currentPage = router.getCurrentPage();
     if (currentPage && currentPage.mousePressed) {
       currentPage.mousePressed();
@@ -59,6 +60,7 @@ new p5((p) => {
   };
 
   p.keyPressed = () => {
+    router?.updateBackgroundMusic?.();
     const currentPage = router.getCurrentPage();
     if (currentPage && currentPage.keyPressed) {
       currentPage.keyPressed(p.key);
