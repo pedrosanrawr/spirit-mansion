@@ -23,11 +23,13 @@ class Player {
     this.hasOrbSigil = false;
     this.isGrown = false;
     this.swordCooldown = 0;
+    this.attackAnimationTimer = 0;
     this.orbCooldown = 0;
   }
 
   updateCooldowns(deltaSeconds) {
     this.swordCooldown = Math.max(0, this.swordCooldown - deltaSeconds);
+    this.attackAnimationTimer = Math.max(0, this.attackAnimationTimer - deltaSeconds);
     this.orbCooldown = Math.max(0, this.orbCooldown - deltaSeconds);
     this.invulnerableTimer = Math.max(0, this.invulnerableTimer - deltaSeconds);
   }
