@@ -11,7 +11,7 @@ const level1 = {
     { x: 2320, y: 640, width: 280, height: 80 },
     { x: 2680, y: 640, width: 300, height: 80 },
     { x: 3060, y: 640, width: 300, height: 80 },
-    { x: 220, y: 565, width: 170, height: 32 },
+    { x: 220, y: 540, width: 170, height: 32 },
     { x: 520, y: 520, width: 170, height: 32 },
     { x: 820, y: 470, width: 170, height: 32 },
     { x: 1320, y: 545, width: 170, height: 32 },
@@ -30,7 +30,7 @@ const level1 = {
     { x: 2980, y: 640, width: 80, height: 80 }
   ],
   enemies: [
-    { type: "roamer", x: 470, y: 600, patrolMinX: 430, patrolMaxX: 640, speed: 95, hp: 1 },
+    { type: "roamer", x: 300, y: 600, patrolMinX: 300, patrolMaxX: 520, speed: 95, hp: 1 },
     { type: "roamer", x: 780, y: 600, patrolMinX: 740, patrolMaxX: 970, speed: 105, hp: 1 },
     { type: "roamer", x: 1460, y: 600, patrolMinX: 1240, patrolMaxX: 1600, speed: 110, hp: 1 },
     { type: "roamer", x: 1980, y: 600, patrolMinX: 1780, patrolMaxX: 2200, speed: 108, hp: 1 },

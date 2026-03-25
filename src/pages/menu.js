@@ -1,5 +1,7 @@
 import menuBackgroundPath from "../assets/menubg.png";
 import pixelFontPath from "../assets/Qaroxe.ttf";
+import soundOnIconPath from "../assets/audio/on_icon.png";
+import soundOffIconPath from "../assets/audio/off_icon.png";
 
 class MenuPage {
   constructor(p, router) {
@@ -9,6 +11,8 @@ class MenuPage {
     this.menuBackground = null;
     this.menuBackgroundFailed = false;
     this.menuFont = null;
+    this.soundOnIcon = null;
+    this.soundOffIcon = null;
     this.helpDialogOpen = false;
     this.helpScroll = 0;
     this.helpMaxScroll = 0;
@@ -34,7 +38,24 @@ class MenuPage {
       .catch((error) => {
         console.error("Failed to load menu font:", error);
       });
+
+    this.p.loadImage(soundOnIconPath)
+      .then((img) => {
+        this.soundOnIcon = img;
+      })
+      .catch((error) => {
+        console.error("Failed to load sound-on icon:", error);
+      });
+
+    this.p.loadImage(soundOffIconPath)
+      .then((img) => {
+        this.soundOffIcon = img;
+      })
+      .catch((error) => {
+        console.error("Failed to load sound-off icon:", error);
+      });
     this.setupButtons();
+    this.updateSoundButton();
   }
 
   setupButtons() {
@@ -64,7 +85,8 @@ class MenuPage {
       y: 20,
       width: 40,
       height: 40,
-      text: this.router.isSoundEnabled() ? "/" : "X",
+      type: "sound",
+      text: "",
       action: () => {
         this.router.toggleSound();
         this.updateSoundButton();
@@ -82,7 +104,7 @@ class MenuPage {
   }
 
   updateSoundButton() {
-    this.buttons[2].text = this.router.isSoundEnabled() ? "/" : "X";
+    this.buttons[2].muted = !this.router.isSoundEnabled();
   }
 
   showHelp() {
@@ -255,6 +277,11 @@ class MenuPage {
     this.p.fill(255);
     this.p.noStroke();
     this.p.textAlign(this.p.CENTER, this.p.CENTER);
+    if (button.type === "sound") {
+      this.drawSoundButtonIcon(x + w / 2, y + h / 2, button.muted);
+      return;
+    }
+
     if (this.menuFont) {
       this.p.textFont(this.menuFont);
     } else {
@@ -263,6 +290,36 @@ class MenuPage {
     this.p.textStyle(this.p.BOLD);
     this.p.textSize(button.width > 50 ? 18 : 20);
     this.p.text(button.text, x + w / 2, y + h / 2 + 1);
+  }
+
+  drawSoundButtonIcon(cx, cy, muted = false) {
+    const icon = muted ? this.soundOffIcon : this.soundOnIcon;
+    if (icon) {
+      this.p.push();
+      this.p.imageMode(this.p.CENTER);
+      this.p.image(icon, cx, cy, 20, 20);
+      this.p.pop();
+      return;
+    }
+
+    this.p.push();
+    this.p.noStroke();
+    this.p.fill(255);
+    this.p.rect(cx - 5, cy - 4, 4, 8);
+    this.p.triangle(cx - 1, cy - 5, cx + 4, cy - 8, cx + 4, cy + 8);
+    if (muted) {
+      this.p.stroke(255, 170, 170);
+      this.p.strokeWeight(2);
+      this.p.line(cx + 6, cy - 5, cx + 10, cy + 5);
+      this.p.line(cx + 10, cy - 5, cx + 6, cy + 5);
+    } else {
+      this.p.noFill();
+      this.p.stroke(196, 232, 255);
+      this.p.strokeWeight(2);
+      this.p.arc(cx + 5, cy, 6, 10, -this.p.HALF_PI * 0.7, this.p.HALF_PI * 0.7);
+      this.p.arc(cx + 7, cy, 10, 14, -this.p.HALF_PI * 0.7, this.p.HALF_PI * 0.7);
+    }
+    this.p.pop();
   }
 
   drawHelpDialog() {
