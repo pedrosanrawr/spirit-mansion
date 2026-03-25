@@ -58,6 +58,14 @@ new p5((p) => {
     }
   };
 
+  p.mouseWheel = (event) => {
+    const currentPage = router.getCurrentPage();
+    if (currentPage && currentPage.mouseWheel) {
+      return currentPage.mouseWheel(event);
+    }
+    return false;
+  };
+
   p.keyPressed = () => {
     const currentPage = router.getCurrentPage();
     if (currentPage && currentPage.keyPressed) {

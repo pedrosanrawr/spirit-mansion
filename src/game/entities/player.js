@@ -54,7 +54,6 @@ class Player {
       this.isGrown = true;
       this.width = Math.floor(this.constants.playerWidth * 1.25);
       this.height = Math.floor(this.constants.playerHeight * 1.25);
-      // Keep feet position stable when changing size.
       this.y -= this.height - previousHeight;
     }
     if (type === "moonBlade") {
