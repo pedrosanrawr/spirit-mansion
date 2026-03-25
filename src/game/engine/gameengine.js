@@ -57,6 +57,7 @@ class GameEngine {
     this.helpDialogScroll = 0;
     this.helpDialogMaxScroll = 0;
     this.headerHelpButton = null;
+    this.bossDefeatSoundPlayed = false;
 
     this.input = new InputSystem(p, C);
     this.renderer = new Renderer(p);
@@ -84,6 +85,7 @@ class GameEngine {
     this.helpDialogScroll = 0;
     this.helpDialogMaxScroll = 0;
     this.headerHelpButton = null;
+    this.bossDefeatSoundPlayed = false;
 
     this.platforms = createPlatforms(this.level.platforms || []);
     this.hazards = this.level.hazards || [];
@@ -168,7 +170,10 @@ class GameEngine {
 
   updatePlayer(deltaSeconds) {
     this.input.applyHorizontalMovement(this.player, deltaSeconds);
-    this.input.applyJumpLogic(this.player, deltaSeconds);
+    const jumped = this.input.applyJumpLogic(this.player, deltaSeconds);
+    if (jumped) {
+      this.router.playJumpSound?.();
+    }
 
     this.player.velocityY = Math.min(this.player.velocityY + C.gravity * deltaSeconds, C.maxFallSpeed);
     const previousX = this.player.x;
@@ -375,6 +380,11 @@ class GameEngine {
 
       pickup.collected = true;
       this.player.applyPickup(pickup.type);
+      if (pickup.type === "spiritBloom") {
+        this.router.playBloomSound?.();
+      } else if (pickup.type === "moonBlade" || pickup.type === "orbSigil") {
+        this.router.playWeaponPickupSound?.();
+      }
       this.message = `Obtained ${PICKUP_LABELS[pickup.type] || "Powerup"}`;
       this.messageTimer = 2.4;
     });
@@ -389,6 +399,7 @@ class GameEngine {
 
     if (this.input.consumeOrbRequest() && this.player.hasOrbSigil && this.player.orbCooldown <= 0) {
       this.player.orbCooldown = C.orbCooldown;
+      this.router.playOrbCastSound?.();
       this.projectiles.push({
         x: this.player.x + this.player.width / 2,
         y: this.player.y + this.player.height / 2,
@@ -406,6 +417,7 @@ class GameEngine {
       if (this.isStompHit(enemy)) {
         this.damageEnemy(enemy, enemy.hp);
         this.player.velocityY = -C.jumpStrength * 0.48;
+        this.router.playJumpSound?.();
         this.message = "Stomp!";
         this.messageTimer = 0.8;
       } else {
@@ -418,6 +430,7 @@ class GameEngine {
         this.boss.hp -= 1;
         this.player.y = this.boss.y - this.player.height;
         this.player.velocityY = -C.jumpStrength * 0.5;
+        this.router.playJumpSound?.();
         this.message = "Boss hit!";
         this.messageTimer = 0.8;
       } else {
@@ -493,6 +506,7 @@ class GameEngine {
 
     if (this.player.isGrown && !options.ignoreBloomShield) {
       this.player.shrinkFromBloom();
+      this.router.playBloomBreakSound?.();
       this.player.invulnerableTimer = C.invulnerabilityTime;
       this.message = "Spirit Bloom shield broke!";
       this.messageTimer = 1.2;
@@ -500,6 +514,7 @@ class GameEngine {
     }
 
     this.player.hearts -= amount;
+    this.router.playHeroDeathSound?.();
     this.damageTaken += amount;
     this.player.invulnerableTimer = C.invulnerabilityTime;
     this.message = reason;
@@ -525,6 +540,10 @@ class GameEngine {
     if (this.levelState !== "playing") return;
     if (this.exitUnlocked) return;
     if (!this.boss || this.boss.hp <= 0) {
+      if (!this.bossDefeatSoundPlayed) {
+        this.router.playJumpSound?.();
+        this.bossDefeatSoundPlayed = true;
+      }
       this.beginLevelClearSequence();
     }
   }
@@ -554,6 +573,7 @@ class GameEngine {
     this.levelState = "victoryModal";
     this.player.velocityX = 0;
     this.player.velocityY = 0;
+    this.router.playVictorySound?.();
     if (this.router.unlockLevel) {
       this.router.unlockLevel(this.levelId + 1);
     }
@@ -674,6 +694,7 @@ class GameEngine {
     if (!this.overlay) return false;
     const button = this.overlay.buttons.find((candidate) => this.isPointInsideButton(mouseX, mouseY, candidate));
     if (!button) return false;
+    this.router.playUiClickSound?.();
     button.action();
     return true;
   }
@@ -686,6 +707,7 @@ class GameEngine {
   handleHeaderClick(mouseX, mouseY) {
     if (!this.headerHelpButton) return false;
     if (!this.isPointInsideButton(mouseX, mouseY, this.headerHelpButton)) return false;
+    this.router.playUiClickSound?.();
     this.toggleHelpDialog(true);
     return true;
   }

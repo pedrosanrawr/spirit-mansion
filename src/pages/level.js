@@ -366,6 +366,7 @@ class LevelsPage {
   mousePressed() {
     this.buttons.forEach((button) => {
       if (button.unlocked !== false && this.isMouseOverButton(button)) {
+        this.router.playUiClickSound?.();
         button.action();
       }
     });

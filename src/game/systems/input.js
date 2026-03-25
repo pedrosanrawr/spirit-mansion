@@ -53,6 +53,7 @@ class InputSystem {
   }
 
   applyJumpLogic(player, deltaSeconds) {
+    let jumped = false;
     const jumpDown = this.p.keyIsDown(this.p.UP_ARROW) || this.p.keyIsDown(87) || this.p.keyIsDown(32);
 
     if (player.onGround) {
@@ -72,9 +73,11 @@ class InputSystem {
       player.onGround = false;
       this.coyoteTimer = 0;
       this.jumpBufferTimer = 0;
+      jumped = true;
     }
 
     this.jumpWasDown = jumpDown;
+    return jumped;
   }
 
   consumeSwordRequest() {
