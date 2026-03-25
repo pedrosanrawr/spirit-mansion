@@ -43,9 +43,9 @@ const level3 = {
     { type: "flyer", x: 3090, y: 350, patrolMinX: 2920, patrolMaxX: 3470, speed: 88, hp: 2, shootCooldown: 2.2 }
   ],
   pickups: [
-    { type: "spiritBloom", x: 540, y: 480, collected: false },
-    { type: "moonBlade", x: 1880, y: 460, collected: false },
-    { type: "orbSigil", x: 3400, y: 480, collected: false }
+    { type: "spiritBloom", x: 610, y: 480, collected: false },
+    { type: "moonBlade", x: 1940, y: 460, collected: false },
+    { type: "orbSigil", x: 2680, y: 480, collected: false }
   ],
   boss: {
     type: "bathhouseMatron",

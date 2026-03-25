@@ -41,9 +41,9 @@ const level2 = {
     { type: "chaser", x: 3150, y: 600, chaseRange: 300, speed: 128, hp: 2 }
   ],
   pickups: [
-    { type: "spiritBloom", x: 860, y: 430, collected: false },
-    { type: "moonBlade", x: 2020, y: 415, collected: false },
-    { type: "spiritBloom", x: 3170, y: 480, collected: false }
+    { type: "moonBlade", x: 940, y: 430, collected: false },
+    { type: "spiritBloom", x: 2100, y: 415, collected: false },
+    { type: "orbSigil", x: 3220, y: 480, collected: false }
   ],
   boss: {
     type: "forestRonin",

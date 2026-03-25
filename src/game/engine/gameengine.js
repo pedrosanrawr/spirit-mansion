@@ -51,6 +51,10 @@ class GameEngine {
     this.overlay = null;
     this.levelElapsedTime = 0;
     this.damageTaken = 0;
+    this.defeatedEnemies = 0;
+    this.totalEnemyCount = 0;
+    this.helpDialogOpen = false;
+    this.headerHelpButton = null;
 
     this.input = new InputSystem(p, C);
     this.renderer = new Renderer(p);
@@ -72,6 +76,10 @@ class GameEngine {
     this.overlay = null;
     this.levelElapsedTime = 0;
     this.damageTaken = 0;
+    this.defeatedEnemies = 0;
+    this.totalEnemyCount = (this.level.enemies || []).length;
+    this.helpDialogOpen = false;
+    this.headerHelpButton = null;
 
     this.platforms = createPlatforms(this.level.platforms || []);
     this.hazards = this.level.hazards || [];
@@ -392,7 +400,7 @@ class GameEngine {
     this.enemies.forEach((enemy) => {
       if (!overlaps(this.player, enemy)) return;
       if (this.isStompHit(enemy)) {
-        enemy.hp = 0;
+        this.damageEnemy(enemy, enemy.hp);
         this.player.velocityY = -C.jumpStrength * 0.48;
         this.message = "Stomp!";
         this.messageTimer = 0.8;
@@ -425,7 +433,7 @@ class GameEngine {
       let hit = false;
       this.enemies.forEach((enemy) => {
         if (!hit && overlaps(enemy, projectile)) {
-          enemy.hp -= projectile.damage || 1;
+          this.damageEnemy(enemy, projectile.damage || 1);
           hit = true;
         }
       });
@@ -446,11 +454,20 @@ class GameEngine {
     };
 
     this.enemies.forEach((enemy) => {
-      if (overlaps(enemy, slashRect)) enemy.hp -= 1;
+      if (overlaps(enemy, slashRect)) this.damageEnemy(enemy, 1);
     });
 
     if (this.boss && this.boss.hp > 0 && overlaps(this.boss, slashRect)) {
       this.boss.hp -= 1;
+    }
+  }
+
+  damageEnemy(enemy, amount) {
+    if (!enemy || enemy.hp <= 0) return;
+    enemy.hp -= amount;
+    if (enemy.hp <= 0 && !enemy.countedAsDefeated) {
+      enemy.countedAsDefeated = true;
+      this.defeatedEnemies += 1;
     }
   }
 
@@ -585,16 +602,20 @@ class GameEngine {
     const heartGoalMet = this.player.hearts >= 2;
     const timeGoalMet = this.levelElapsedTime <= (STAR_TIME_TARGETS[this.levelId] || 150);
     const damageGoalMet = this.damageTaken <= 2;
-    const stars = Math.max(1, [heartGoalMet, timeGoalMet, damageGoalMet].filter(Boolean).length);
+    const killGoalMet = this.defeatedEnemies >= this.totalEnemyCount;
+    const stars = Math.max(1, Math.min(3, [heartGoalMet, timeGoalMet, damageGoalMet, killGoalMet].filter(Boolean).length));
 
     return {
       stars,
       hearts: this.player.hearts,
       timeSeconds: this.levelElapsedTime,
       damageTaken: this.damageTaken,
+      defeatedEnemies: this.defeatedEnemies,
+      totalEnemyCount: this.totalEnemyCount,
       heartGoalMet,
       timeGoalMet,
-      damageGoalMet
+      damageGoalMet,
+      killGoalMet
     };
   }
 
@@ -614,6 +635,18 @@ class GameEngine {
     return this.levelState === "victoryModal" || this.levelState === "gameOverModal";
   }
 
+  isHelpDialogOpen() {
+    return this.helpDialogOpen;
+  }
+
+  toggleHelpDialog(forceValue = !this.helpDialogOpen) {
+    this.helpDialogOpen = Boolean(forceValue);
+  }
+
+  setHeaderHelpButton(button) {
+    this.headerHelpButton = button ? { ...button } : null;
+  }
+
   updateOverlayHover(mouseX, mouseY) {
     if (!this.overlay) return;
     this.overlay.buttons.forEach((button) => {
@@ -626,6 +659,18 @@ class GameEngine {
     const button = this.overlay.buttons.find((candidate) => this.isPointInsideButton(mouseX, mouseY, candidate));
     if (!button) return false;
     button.action();
+    return true;
+  }
+
+  updateHeaderHover(mouseX, mouseY) {
+    if (!this.headerHelpButton) return;
+    this.headerHelpButton.hovered = this.isPointInsideButton(mouseX, mouseY, this.headerHelpButton);
+  }
+
+  handleHeaderClick(mouseX, mouseY) {
+    if (!this.headerHelpButton) return false;
+    if (!this.isPointInsideButton(mouseX, mouseY, this.headerHelpButton)) return false;
+    this.toggleHelpDialog(true);
     return true;
   }
 
